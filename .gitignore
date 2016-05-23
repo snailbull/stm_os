@@ -1,0 +1,6 @@
+*.o.d
+*.o
+AStyle.exe
+astyle-format.bat
+*.dis
+*.exe
