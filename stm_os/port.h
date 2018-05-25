@@ -9,7 +9,7 @@
 
 #define CFG_POWER_SAVING		1
 
-#define CFG_LITTLE_ENDIEN		1
+#define CFG_LITTLE_ENDIAN		1
 
 #define CFG_DEBUG_ON
 
@@ -17,16 +17,18 @@
  * os的全局变量互斥访问
  */
 #include <pthread.h>
+#include <semaphore.h>
 
 extern pthread_mutex_t os_mutex;
+extern sem_t os_sem;
 
 #define PORT_SR_ALLOC()         //CPU_SR cpu_sr = (CPU_SR)0
 #define PORT_CPU_DISABLE()      {pthread_mutex_lock(&os_mutex);}
 //{ cpu_sr = CPU_SR_Save();}      /* disable cpu interrupt */
 #define PORT_CPU_ENABLE()       {pthread_mutex_unlock(&os_mutex);}
 //{ CPU_SR_Restore(cpu_sr);}      /* enable cpu interrupt */
-#define PORT_OS_SLEEP()			{pthread_mutex_lock(&wkup_mutex);}
-#define PORT_OS_WKUP()			{pthread_mutex_unlock(&wkup_mutex);}
+#define PORT_OS_SLEEP()			{sem_wait(&os_sem);}
+#define PORT_OS_WKUP()			{sem_post(&os_sem);}
 
 #ifdef CFG_DEBUG_ON
 #define PORT_PRINTF(format, ...)    printf(format, ##__VA_ARGS__)

@@ -38,5 +38,6 @@ uint8_t os_send_message(TActive *act, signal_t sig, void *para);
 void os_dispatch(void);
 void os_power(void);
 void os_sleep(void);
+void os_wakeup(void);
 
 #endif

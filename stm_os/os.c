@@ -116,6 +116,7 @@ uint8_t os_post_message(TActive *act, signal_t sig, void *para, uint8_t opt)
     }
 
     PORT_CPU_ENABLE();
+	os_wakeup();
 
     return ERR_SUCCESS;
 }
@@ -200,23 +201,33 @@ void os_dispatch(void)
     else
     {
         PORT_CPU_ENABLE();
-#if CFG_POWER_SAVING > 0u
         /* power manegement */
-        //os_sleep();
-#endif
+		os_sleep();
     }
 }
 
+void os_sleep(void)
+{
+#if CFG_POWER_SAVING > 0u
+	PORT_OS_SLEEP();
+#endif
+}
+void os_wakeup(void)
+{
+#if CFG_POWER_SAVING > 0u
+	PORT_OS_WKUP();
+#endif
+}
 /*
- * // Find the highest ready task
- * i = bit_search_first_one(rq->task_bit_map, priority, CONFIG_RAW_PRIO_MAX - priority);
+ * Find the highest ready task
+ * i = bit_search_first_one(rq->task_bit_map, priority, CFG_LOWEST_PRIO - priority);
  */
 int32_t bit_search_first_one(int32_t *base, uint8_t offset, int32_t width)
 {
     register uint32_t *cp, v;
     register int32_t position;
 
-    cp = base;
+    cp = (uint32_t*)base;
     /*caculate word position to bitmap*/
     cp += offset >> 5;
 

@@ -1,4 +1,4 @@
-事件驱动状态机系统
+event state-machine os
 ==================
 
 2015-4-5
@@ -7,19 +7,21 @@ zrpeng
 
 history
 -------------------
-版本	说明
-0.02	2015-6-6 准备增加内存管理，定时器和电源模块.
+version	description
+
+1.00	
+0.02	2015-6-6 add mem manage, timer, power.
 		mem_malloc,mem_free
 		evtimer_add,evtimer_del,evtimer_set
 		cbtimer_add,cbtimer_del,cbtimer_set
 		power_sleep, power_set
 	
-		2015-6-18 正在开发中
+		2015-6-18 developing...
 	
-		2015-7-14 evtimer编写完毕，等待测试
+		2015-7-14 evtimer ok
 	
-0.01a	2015-6-1 层次状态机运行正常，串口消息正常，fcmd模块正常.
-		2015-6-3 RTC定时唤醒成功
+0.01a	2015-6-1 hsm run ok, uart msg ok, fcmd ok.
+		2015-6-3 RTC timer alarm ok
 
 	
 	

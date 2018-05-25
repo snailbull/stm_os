@@ -6,7 +6,7 @@
 #define MEM_STATS				/* 内存统计 */
 #define MEM_ALIGN_SIZE	8		/* 内存对齐字节数 */
 #define DEBUG_MEM		0		/* 内存调试 */
-//#define MEM_SAFETY				/* 内存线程安全 */
+#define MEM_SAFETY				/* 内存线程安全 */
 
 #define MIN_SIZE		12		/* 最小内存分配大小 */
 #define MIN_SIZE_ALIGNED     MEM_ALIGN_UP(MIN_SIZE, MEM_ALIGN_SIZE)		/* 16字节 */
@@ -33,7 +33,11 @@ static struct heap_mem *heap_end;/* the last entry, always unused! */
 static struct heap_mem *lfree;   /* pointer to the lowest free block */
 
 #ifdef MEM_SAFETY
-static struct rt_semaphore heap_sem; /* 内存信号量 */
+#include <semaphore.h>
+#define PORT_MEM_SEM_INIT()		{sem_init(&heap_sem,0,1);}
+#define PORT_MEM_SEM_TAKE()		{sem_wait(&heap_sem);}
+#define PORT_MEM_SEM_POST()		{sem_post(&heap_sem);}
+static sem_t heap_sem; /* 内存信号量 */
 #endif
 
 static uint32_t mem_size_aligned;	/* 当前最大可用内存块 */
@@ -131,7 +135,7 @@ void os_mem_init(void *begin_addr, void *end_addr)
     heap_end->prev  = mem_size_aligned + SIZEOF_STRUCT_MEM;
 
 #ifdef MEM_SAFETY
-    rt_sem_init(&heap_sem, "heap", 1, RT_IPC_FLAG_FIFO);
+	PORT_MEM_SEM_INIT();
 #endif
 
     /* initialize the lowest-free pointer to the start of the heap */
@@ -184,7 +188,7 @@ void *os_malloc(uint32_t size)
 
 #ifdef MEM_SAFETY
     /* take memory semaphore */
-    rt_sem_take(&heap_sem, RT_WAITING_FOREVER);
+	PORT_MEM_SEM_TAKE();
 #endif
 
     for (ptr = (uint8_t *)lfree - heap_ptr;
@@ -267,7 +271,7 @@ void *os_malloc(uint32_t size)
                 PORT_ASSERT(((lfree == heap_end) || (!lfree->used)));
             }
 #ifdef MEM_SAFETY
-            rt_sem_release(&heap_sem);
+			PORT_MEM_SEM_POST();
 #endif
             PORT_ASSERT((uint32_t)mem + SIZEOF_STRUCT_MEM + size <= (uint32_t)heap_end);
             PORT_ASSERT((uint32_t)((uint8_t *)mem + SIZEOF_STRUCT_MEM) % MEM_ALIGN_SIZE == 0);
@@ -282,7 +286,7 @@ void *os_malloc(uint32_t size)
         }
     }
 #ifdef MEM_SAFETY
-    rt_sem_release(&heap_sem);
+	PORT_MEM_SEM_POST();
 #endif
     return NULL;
 }
@@ -319,7 +323,7 @@ void *os_realloc(void *rmem, uint32_t newsize)
     }
 
 #ifdef MEM_SAFETY
-    rt_sem_take(&heap_sem, RT_WAITING_FOREVER);
+	PORT_MEM_SEM_TAKE();
 #endif
 
     if ((uint8_t *)rmem < (uint8_t *)heap_ptr ||
@@ -327,7 +331,7 @@ void *os_realloc(void *rmem, uint32_t newsize)
     {
 #ifdef MEM_SAFETY
         /* illegal memory */
-        rt_sem_release(&heap_sem);
+		PORT_MEM_SEM_POST();
 #endif
 
         return rmem;
@@ -341,7 +345,7 @@ void *os_realloc(void *rmem, uint32_t newsize)
     {
 #ifdef MEM_SAFETY
         /* the size is the same as */
-        rt_sem_release(&heap_sem);
+		PORT_MEM_SEM_POST();
 #endif
         return rmem;
     }
@@ -367,12 +371,12 @@ void *os_realloc(void *rmem, uint32_t newsize)
 
         plug_holes(mem2);
 #ifdef MEM_SAFETY
-        rt_sem_release(&heap_sem);
+		PORT_MEM_SEM_POST();
 #endif
         return rmem;
     }
 #ifdef MEM_SAFETY
-    rt_sem_release(&heap_sem);
+	PORT_MEM_SEM_POST();
 #endif
 
     /* expand memory */
@@ -452,7 +456,7 @@ void os_free(void *rmem)
 
 #ifdef MEM_SAFETY
     /* protect the heap from concurrent access */
-    rt_sem_take(&heap_sem, RT_WAITING_FOREVER);
+	PORT_MEM_SEM_TAKE();
 #endif
 
     /* ... which has to be in a used state ... */
@@ -475,17 +479,16 @@ void os_free(void *rmem)
     /* finally, see if prev or next are free also */
     plug_holes(mem);
 #ifdef MEM_SAFETY
-    rt_sem_release(&heap_sem);
+	PORT_MEM_SEM_POST();
 #endif
 }
 
-#ifdef MEM_STATS
 void os_mem_info(void)
 {
+#ifdef MEM_STATS
     PORT_PRINTF("struct heap_mem=%d, MIN_SIZE_ALIGNED=%d\n", sizeof(struct heap_mem), MIN_SIZE_ALIGNED);
     PORT_PRINTF("total memory: %d\n", mem_size_aligned);
     PORT_PRINTF("used memory : %d\n", used_mem);
     PORT_PRINTF("maximum allocated memory: %d\n", max_mem);
-}
 #endif
-
+}
