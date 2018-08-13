@@ -1,26 +1,15 @@
-fcmdº¯ÊıÃüÁîĞĞµ÷ÊÔÄ£¿é v0.03
+# fcmd
+fcmd is a simple c-function unit debug library.
+use it uart or console to test your unit.
 
-2015-3-6
+# how to use
 
-zrpeng
+# history:
+0.03	add va_arg param supportï¼Œeg:int printf(const char *fmt, ...)
+0.02	add string param support, eg:disp(50,-60, "ADC:  mV", 10, "89"), 
+	add mem cmd.
+0.01	test okï¼Œonly support int32_t param.
 
-history:
------------------------------------------
-0.03	2015-5-16
-		Ôö¼Ó¿É±ä²ÎÊıµÄÖ§³Ö£¬eg:int printf(const char *fmt, ...)
-
-0.02	2015-5-3
-		ĞÂÔö¼Ó×Ö·û´®ÀàĞÍµÄÖ§³Ö,eg:disp(50,-60, "ADC:  mV", 10, "89"), 
-		µ÷»»ÁËCmdTblÄÚ²¿³ÉÔ±µÄË³Ğò£¬×Ö·û´®ÔÚÇ°£¬º¯ÊıÖ¸ÕëÔÚºó
-		Ôö¼ÓÁËÄÚ´æÏÔÊ¾ÃüÁî,c¿âº¯ÊıÒ²¿ÉÒÔÕı³£µ÷ÓÃ²âÊÔ
-
-0.01	ÔËĞĞÕı³££¬Ö»ÄÜÖ§³Öint32_tÀàĞÍ²ÎÊı		
-
-	
-note:
-----------------------------------------
-ĞèÒª×¢Òâ_args_tµÄÀàĞÍ¿í¶È£¬¼Ä´æÆ÷ÊÇ32Î»µÄ´¦ÀíÆ÷Ê¹ÓÃint¼´¿É£¬
-¶ÔÓÚ16Î»ºÍ8Î»´¦ÀíÆ÷£¬int¿ÉÄÜÊÇ16Î»¿í¶È£¬8Î»µ¥Æ¬»ú´«µİ²ÎÊı
-»áÊ¹ÓÃÁ½¸ö¼Ä´æÆ÷À´´«µİ¸ßµÍ×Ö½Ú£¬¿ÉÄÜ»á³ö´í¡£½¨ÒéCmdTblÖĞ
-º¯ÊıµÄ²ÎÊı¿í¶ÈºÍ_args_t¿í¶ÈÒ»ÖÂ¡£
-
+# note
+set _args_t wideï¼Œ32-bit mcu use intï¼Œ
+but 16-bit and 8-bit mcuï¼Œint maybe 16-bitï¼Œ8-bit mcu maybe use two reg to pass short param(high-byte&low-byte),
