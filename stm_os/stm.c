@@ -1,11 +1,11 @@
 #include "stm_os.h"
 
-static TEvt STMGlobalEvent[4] =
+static evt_t s_stm_global_evt[4] =
 {
-    { STM_EMPTY_SIG, 0},
-    { STM_ENTRY_SIG, 0},
-    { STM_EXIT_SIG,  0},
-    { STM_INIT_SIG,  0}
+    { STM_EVT_EMPTY, 0},
+    { STM_EVT_ENTRY, 0},
+    { STM_EVT_EXIT,  0},
+    { STM_EVT_INIT,  0}
 };
 
 /*
@@ -16,21 +16,21 @@ static TEvt STMGlobalEvent[4] =
  *
  * Note(s)
  */
-void fsm_init (TMsm *me, TEvt *e)
+void fsm_init (stm_t *me, evt_t *e)
 {
     uint8_t ret;
     if (me->temp == 0)
     {
-        PORT_ASSERT (0);
+        OS_ASSERT (0);
     }
 
     ret = (*me->temp) (me, e);          /* do the fsm constructor init function */
     if (ret != STM_RET_TRAN)            /* transition must happen here */
     {
-        PORT_ASSERT (0);
+        OS_ASSERT (0);
     }
 
-    STM_TRIG (me->temp, STM_ENTRY_SIG); /* trig the STM_ENTRY_SIG to the new transitioned state */
+    STM_TRIG (me->temp, STM_EVT_ENTRY); /* trig the STM_EVT_ENTRY to the new transitioned state */
     me->state = me->temp;               /*change to new state*/
 }
 
@@ -41,13 +41,13 @@ void fsm_init (TMsm *me, TEvt *e)
  *
  * Note(s)
  */
-void fsm_dispatch(TMsm *me, TEvt *e)
+void fsm_dispatch(stm_t *me, evt_t *e)
 {
     uint8_t ret;
 
     if (me->state != me->temp)          /* State must be stable here */
     {
-        PORT_ASSERT (0);
+        OS_ASSERT (0);
     }
 
     ret = (*me->state) (me, e);         /* exceute the state function with new event */
@@ -62,9 +62,9 @@ void fsm_dispatch(TMsm *me, TEvt *e)
 /*
  * fsm constructor
  */
-void fsm_ctor(TMsm *me, state_func_t initial)
+void fsm_ctor(stm_t *me, stm_func_t initial)
 {
-    static const TMsmVtbl vtbl = {fsm_init, fsm_dispatch};		/* set visual table */
+    static const stm_vtbl_t vtbl = {fsm_init, fsm_dispatch};		/* set visual table */
 
     me->vptr = &vtbl;
     me->state = 0;
@@ -78,52 +78,52 @@ void fsm_ctor(TMsm *me, state_func_t initial)
  *
  * Note(s)
  */
-void hsm_init (TMsm *me, TEvt *e)
+void hsm_init (stm_t *me, evt_t *e)
 {
     uint8_t ret;
     int8_t ip;
-    state_func_t path[STM_MAX_NEST_DEPTH]; /* Max nested state levels */
-    state_func_t t = me->state;
+    stm_func_t path[STM_MAX_NEST_DEPTH]; /* Max nested state levels */
+    stm_func_t t = me->state;
 
     if (me->temp == 0)
     {
-        PORT_ASSERT (0);
+        OS_ASSERT (0);
     }
 
-    if (t != STM_STATE_CAST (hsm_top) ) /* if state is not equal to the hsm top state, just assert */
+    if (t != hsm_top) /* if state is not equal to the hsm top state, just assert */
     {
-        PORT_ASSERT (0);
+        OS_ASSERT (0);
     }
 
     ret = (*me->temp) (me, e);          /* do the hsm constructor init function */
     if (ret != STM_RET_TRAN)            /* transition must happen here */
     {
-        PORT_ASSERT (0);
+        OS_ASSERT (0);
     }
 
-    /*Becareful STM_INIT_SIG must trig state to the nested children state, otherwise hsm crash*/
+    /*Becareful STM_EVT_INIT must trig state to the nested children state, otherwise hsm crash*/
     do
     {
         ip = 0;
         path[0] = me->temp;
 
-        STM_TRIG (me->temp, STM_EMPTY_SIG);/* Find all the father state until to hsm_top */
+        STM_TRIG (me->temp, STM_EVT_EMPTY);/* Find all the father state until to hsm_top */
 
         while (me->temp != t)
         {
             ++ip;
             path[ip] = me->temp;
-            STM_TRIG (me->temp, STM_EMPTY_SIG);
+            STM_TRIG (me->temp, STM_EVT_EMPTY);
         }
 
         me->temp = path[0];
 
         if (ip >= STM_MAX_NEST_DEPTH)
         {
-            PORT_ASSERT (0);
+            OS_ASSERT (0);
         }
 
-        /* trig STM_ENTRY_SIG from father source state to nested children state */
+        /* trig STM_EVT_ENTRY from father source state to nested children state */
         do
         {
             STM_ENTER (path[ip]);
@@ -133,10 +133,10 @@ void hsm_init (TMsm *me, TEvt *e)
 
         t = path[0];
 
-        /* trig the STM_INIT_SIG to the new transitioned state, if new transion happened again, then we need do int init again */
+        /* trig the STM_EVT_INIT to the new transitioned state, if new transion happened again, then we need do int init again */
 
     }
-    while (STM_TRIG (t, STM_INIT_SIG) == STM_RET_TRAN);
+    while (STM_TRIG (t, STM_EVT_INIT) == STM_RET_TRAN);
 
     me->state = t;                      /* change to new state */
     me->temp  = t;
@@ -149,18 +149,18 @@ void hsm_init (TMsm *me, TEvt *e)
  * @e is the trig event
  *
  */
-void hsm_dispatch(TMsm *me, TEvt *e)
+void hsm_dispatch(stm_t *me, evt_t *e)
 {
     uint8_t r;
     int8_t ip;
     int8_t iq;
-    state_func_t path[STM_MAX_NEST_DEPTH];
-    state_func_t s;
-    state_func_t t = me->state;
+    stm_func_t path[STM_MAX_NEST_DEPTH];
+    stm_func_t s;
+    stm_func_t t = me->state;
 
     if (t != me->temp)              /* state must be stable here */
     {
-        PORT_ASSERT (0);
+        OS_ASSERT (0);
     }
 
     do
@@ -170,7 +170,7 @@ void hsm_dispatch(TMsm *me, TEvt *e)
 
         if (r == STM_RET_UNHANDLED)
         {
-            r = STM_TRIG (s, STM_EMPTY_SIG);/* Move up to father state */
+            r = STM_TRIG (s, STM_EVT_EMPTY);/* Move up to father state */
         }
 
         /* move up to the father state to find suitable state to handle the sig */
@@ -190,11 +190,11 @@ void hsm_dispatch(TMsm *me, TEvt *e)
            for example s is the father state of t */
         while (t != s)
         {
-            /* if STM_EXIT_SIG is handled, trig STM_EMPTY_SIG to find the father state
-               if STM_EXIT_SIG not handled , then me->temp hold the father state */
-            if (STM_TRIG (t, STM_EXIT_SIG) == STM_RET_HANDLED)
+            /* if STM_EVT_EXIT is handled, trig STM_EVT_EMPTY to find the father state
+               if STM_EVT_EXIT not handled , then me->temp hold the father state */
+            if (STM_TRIG (t, STM_EVT_EXIT) == STM_RET_HANDLED)
             {
-                STM_TRIG (t, STM_EMPTY_SIG);
+                STM_TRIG (t, STM_EVT_EMPTY);
             }
 
             t = me->temp;           /* move to one father state up */
@@ -213,7 +213,7 @@ void hsm_dispatch(TMsm *me, TEvt *e)
         }
         else
         {
-            STM_TRIG (t, STM_EMPTY_SIG);
+            STM_TRIG (t, STM_EVT_EMPTY);
             t = me->temp;
 
             if (s == t)
@@ -222,7 +222,7 @@ void hsm_dispatch(TMsm *me, TEvt *e)
             }
             else
             {
-                STM_TRIG (s, STM_EMPTY_SIG);
+                STM_TRIG (s, STM_EVT_EMPTY);
 
                 if (me->temp == t)
                 {
@@ -242,7 +242,7 @@ void hsm_dispatch(TMsm *me, TEvt *e)
                         path[1] = t;
                         t = me->temp;
 
-                        r = STM_TRIG (path[1], STM_EMPTY_SIG);
+                        r = STM_TRIG (path[1], STM_EVT_EMPTY);
 
                         while (r == STM_RET_FATHER)
                         {
@@ -254,7 +254,7 @@ void hsm_dispatch(TMsm *me, TEvt *e)
 
                                 if (ip >= STM_MAX_NEST_DEPTH)
                                 {
-                                    PORT_ASSERT (0);
+                                    OS_ASSERT (0);
                                 }
 
                                 --ip;
@@ -262,7 +262,7 @@ void hsm_dispatch(TMsm *me, TEvt *e)
                             }
                             else
                             {
-                                r = STM_TRIG (me->temp, STM_EMPTY_SIG);
+                                r = STM_TRIG (me->temp, STM_EVT_EMPTY);
                             }
                         }
 
@@ -270,7 +270,7 @@ void hsm_dispatch(TMsm *me, TEvt *e)
                         {
                             if (ip >= STM_MAX_NEST_DEPTH)
                             {
-                                PORT_ASSERT (0);
+                                OS_ASSERT (0);
                             }
 
                             STM_EXIT (s);
@@ -299,9 +299,9 @@ void hsm_dispatch(TMsm *me, TEvt *e)
                                 r = STM_RET_IGNORED;
                                 do
                                 {
-                                    if (STM_TRIG (t, STM_EXIT_SIG) == STM_RET_HANDLED)
+                                    if (STM_TRIG (t, STM_EVT_EXIT) == STM_RET_HANDLED)
                                     {
-                                        STM_TRIG (t, STM_EMPTY_SIG);
+                                        STM_TRIG (t, STM_EVT_EMPTY);
                                     }
 
                                     t = me->temp;
@@ -330,7 +330,7 @@ void hsm_dispatch(TMsm *me, TEvt *e)
             }
         }
 
-        for (; ip >= 0; --ip)       /* trig STM_ENTRY_SIG from LCA to transioned state */
+        for (; ip >= 0; --ip)       /* trig STM_EVT_ENTRY from LCA to transioned state */
         {
             STM_ENTER (path[ip]);
         }
@@ -338,30 +338,30 @@ void hsm_dispatch(TMsm *me, TEvt *e)
         t = path[0];
         me->temp = t;
 
-        /* trig the STM_INIT_SIG to the new transitioned state, if new transion happened again, then we need do it again
-           Becareful STM_INIT_SIG must trig t state to the nested children state, otherwise hsm crash */
-        while (STM_TRIG (t, STM_INIT_SIG) == STM_RET_TRAN)
+        /* trig the STM_EVT_INIT to the new transitioned state, if new transion happened again, then we need do it again
+           Becareful STM_EVT_INIT must trig t state to the nested children state, otherwise hsm crash */
+        while (STM_TRIG (t, STM_EVT_INIT) == STM_RET_TRAN)
         {
             ip = 0;
             path[0] = me->temp;
 
-            STM_TRIG (me->temp, STM_EMPTY_SIG);/* Find all the father state until to source t state */
+            STM_TRIG (me->temp, STM_EVT_EMPTY);/* Find all the father state until to source t state */
 
             while (me->temp != t)
             {
                 ++ip;
                 path[ip] = me->temp;
-                STM_TRIG (me->temp, STM_EMPTY_SIG);
+                STM_TRIG (me->temp, STM_EVT_EMPTY);
             }
 
             me->temp = path[0];
 
             if (ip >= STM_MAX_NEST_DEPTH)
             {
-                PORT_ASSERT (0);
+                OS_ASSERT (0);
             }
 
-            /* trig STM_ENTRY_SIG from father source state to nested transition children state */
+            /* trig STM_EVT_ENTRY from father source state to nested transition children state */
             do
             {
                 STM_ENTER (path[ip]);
@@ -386,12 +386,12 @@ void hsm_dispatch(TMsm *me, TEvt *e)
  * Returns   if the state is the father state of current state, it also return 1.
  *
  */
-uint8_t is_hsm_in_state (TMsm *me, state_func_t state)
+uint8_t is_hsm_in_state (stm_t *me, stm_func_t state)
 {
     uint8_t inState = 0;
     uint8_t r;
 
-    PORT_ASSERT (me->temp == me->state);
+    OS_ASSERT (me->temp == me->state);
     do
     {
         if (me->temp == state)
@@ -401,7 +401,7 @@ uint8_t is_hsm_in_state (TMsm *me, state_func_t state)
         }
         else
         {
-            r = STM_TRIG (me->temp, STM_EMPTY_SIG);
+            r = STM_TRIG (me->temp, STM_EVT_EMPTY);
         }
     }
     while (r != STM_RET_IGNORED);
@@ -414,7 +414,7 @@ uint8_t is_hsm_in_state (TMsm *me, state_func_t state)
 /*
  * exec top of state machine, top of hsm ignore all event
  */
-uint8_t hsm_top (TMsm *me, TEvt *e)
+uint8_t hsm_top (stm_t *me, evt_t *e)
 {
     me = me;
     e = e;
@@ -424,9 +424,9 @@ uint8_t hsm_top (TMsm *me, TEvt *e)
 /*
  * hsm constructor
  */
-void hsm_ctor(TMsm *me, state_func_t initial)
+void hsm_ctor(stm_t *me, stm_func_t initial)
 {
-    static const TMsmVtbl vtbl = {hsm_init, hsm_dispatch};		/* set visual table */
+    static const stm_vtbl_t vtbl = {hsm_init, hsm_dispatch};		/* set visual table */
 
     me->vptr = &vtbl;
     me->state = hsm_top;

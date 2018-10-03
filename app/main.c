@@ -10,7 +10,7 @@
 *
 */
 #define MEM_POOL_SIZE   1024*40
-uint8_t mem_pool[MEM_POOL_SIZE] __attribute__((aligned(4)));
+uint8_t mem_pool[MEM_POOL_SIZE];
 TActiveCB activeCBs[] =
 {
     {&driver_act, driver_queue, ARRAY_SIZE(driver_queue)},
@@ -18,10 +18,6 @@ TActiveCB activeCBs[] =
 };
 uint8_t max_active_object = ARRAY_SIZE(activeCBs);
 
-
-/******************************************************************************
-*
-*/
 pthread_t dispatch_thread_id;
 pthread_t timer_thread_id;
 pthread_mutex_t os_mutex;

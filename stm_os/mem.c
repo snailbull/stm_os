@@ -1,19 +1,20 @@
 #include "stm_os.h"
 
 /*
- * 内存配置
+ * memory config
  */
-#define MEM_STATS				/* 内存统计 */
-#define MEM_ALIGN_SIZE	8		/* 内存对齐字节数 */
-#define DEBUG_MEM		0		/* 内存调试 */
-//#define MEM_SAFETY				/* 内存线程安全 */
-
-#define MIN_SIZE		12		/* 最小内存分配大小 */
-#define MIN_SIZE_ALIGNED     MEM_ALIGN_UP(MIN_SIZE, MEM_ALIGN_SIZE)		/* 16字节 */
-#define SIZEOF_STRUCT_MEM    MEM_ALIGN_UP(sizeof(struct heap_mem), MEM_ALIGN_SIZE)	/* 16字节 */
+#define MEM_STATISTIC
+#define MEM_ALIGN_BYTE	8
+#define MEM_DEBUG		0
+//#define MEM_SAFETY
+#define MEM_ALIGN_UP(size, align)	(((size) + (align) - 1) & ~((align) - 1))
+#define MEM_ALIGN_DOWN(size, align)	((size) & ~((align) - 1))
+#define MEM_BLOCK_MIN_SIZE      12
+#define MEM_BLOCK_ALIGN_BYTE    MEM_ALIGN_UP(MEM_BLOCK_MIN_SIZE, MEM_ALIGN_BYTE)		/* 16byte */
+#define MEM_BLOCK_SIZE          MEM_ALIGN_UP(sizeof(struct heap_mem), MEM_ALIGN_BYTE)	/* 16byte */
 
 /*
- * 内存块结构定义, 12字节
+ * memory block(12byte)
  */
 #define HEAP_MAGIC 0x1ea0
 struct heap_mem
@@ -26,19 +27,16 @@ struct heap_mem
     uint32_t prev;
 };
 
-/** pointer to the heap: for alignment, heap_ptr is now a pointer instead of an array */
 static uint8_t *heap_ptr;			/* memory pool pointer. */
 
 static struct heap_mem *heap_end;/* the last entry, always unused! */
 static struct heap_mem *lfree;   /* pointer to the lowest free block */
-
 #ifdef MEM_SAFETY
-static struct rt_semaphore heap_sem; /* 内存信号量 */
+static sem_t heap_sem; /* mem semaphore */
 #endif
+static uint32_t mem_size_aligned;	/* Currently maximum available memory block */
 
-static uint32_t mem_size_aligned;	/* 当前最大可用内存块 */
-
-#ifdef MEM_STATS
+#ifdef MEM_STATISTIC
 static uint32_t used_mem, max_mem;
 #endif
 
@@ -47,9 +45,9 @@ static void plug_holes(struct heap_mem *mem)
     struct heap_mem *nmem;
     struct heap_mem *pmem;
 
-    PORT_ASSERT((uint8_t *)mem >= heap_ptr);
-    PORT_ASSERT((uint8_t *)mem < (uint8_t *)heap_end);
-    PORT_ASSERT(mem->used == 0);
+    MEM_ASSERT((uint8_t *)mem >= heap_ptr);
+    MEM_ASSERT((uint8_t *)mem < (uint8_t *)heap_end);
+    MEM_ASSERT(mem->used == 0);
 
     /* plug hole forward */
     nmem = (struct heap_mem *)&heap_ptr[mem->next];
@@ -91,21 +89,21 @@ static void plug_holes(struct heap_mem *mem)
 void os_mem_init(void *begin_addr, void *end_addr)
 {
     struct heap_mem *mem;
-    uint32_t begin_align = MEM_ALIGN_UP((uint32_t)begin_addr, MEM_ALIGN_SIZE);
-    uint32_t end_align = MEM_ALIGN_DOWN((uint32_t)end_addr, MEM_ALIGN_SIZE);
+    uint32_t begin_align = MEM_ALIGN_UP((uint32_t)begin_addr, MEM_ALIGN_BYTE);
+    uint32_t end_align = MEM_ALIGN_DOWN((uint32_t)end_addr, MEM_ALIGN_BYTE);
 
     /*RT_DEBUG_NOT_IN_INTERRUPT;*/
 
     /* alignment addr */
-    if ((end_align > (2 * SIZEOF_STRUCT_MEM)) &&
-            ((end_align - 2 * SIZEOF_STRUCT_MEM) >= begin_align))
+    if ((end_align > (2 * MEM_BLOCK_SIZE)) &&
+            ((end_align - 2 * MEM_BLOCK_SIZE) >= begin_align))
     {
         /* calculate the aligned memory size */
-        mem_size_aligned = end_align - begin_align - 2 * SIZEOF_STRUCT_MEM;
+        mem_size_aligned = end_align - begin_align - 2 * MEM_BLOCK_SIZE;
     }
     else
     {
-        PORT_PRINTF("mem init, error begin address 0x%x, and end address 0x%x\n",
+        MEM_DEBUG("mem init, error begin address 0x%x, and end address 0x%x",
                     (uint32_t)begin_addr, (uint32_t)end_addr);
         return;
     }
@@ -113,13 +111,13 @@ void os_mem_init(void *begin_addr, void *end_addr)
     /* point to begin address of heap */
     heap_ptr = (uint8_t *)begin_align;
 
-    PORT_PRINTF("mem init, heap begin address 0x%x, size %d\n",
+    MEM_DEBUG("mem init, heap begin address 0x%x, size %d",
                 (uint32_t)heap_ptr, mem_size_aligned);
 
     /* initialize the start of the heap */
     mem        = (struct heap_mem *)heap_ptr;
     mem->magic = HEAP_MAGIC;
-    mem->next  = mem_size_aligned + SIZEOF_STRUCT_MEM;
+    mem->next  = mem_size_aligned + MEM_BLOCK_SIZE;
     mem->prev  = 0;
     mem->used  = 0;
 
@@ -127,11 +125,15 @@ void os_mem_init(void *begin_addr, void *end_addr)
     heap_end        = (struct heap_mem *)&heap_ptr[mem->next];
     heap_end->magic = HEAP_MAGIC;
     heap_end->used  = 1;
-    heap_end->next  = mem_size_aligned + SIZEOF_STRUCT_MEM;
-    heap_end->prev  = mem_size_aligned + SIZEOF_STRUCT_MEM;
+    heap_end->next  = mem_size_aligned + MEM_BLOCK_SIZE;
+    heap_end->prev  = mem_size_aligned + MEM_BLOCK_SIZE;
 
 #ifdef MEM_SAFETY
-    rt_sem_init(&heap_sem, "heap", 1, RT_IPC_FLAG_FIFO);
+    if(sem_init(&heap_sem, 0, 1) == -1)
+    {
+        MEM_DEBUG("heap_sem intitialization failed\n");
+        MEM_ASSERT(0);
+    }
 #endif
 
     /* initialize the lowest-free pointer to the start of the heap */
@@ -158,33 +160,33 @@ void *os_malloc(uint32_t size)
         return NULL;
     }
 
-    if (size != MEM_ALIGN_UP(size, MEM_ALIGN_SIZE))
+    if (size != MEM_ALIGN_UP(size, MEM_ALIGN_BYTE))
     {
-        PORT_PRINTF("malloc size %d, but align to %d\n", size, MEM_ALIGN_UP(size, MEM_ALIGN_SIZE));
+        MEM_DEBUG("malloc size %d, but align to %d", size, MEM_ALIGN_UP(size, MEM_ALIGN_BYTE));
     }
     else
     {
-        PORT_PRINTF("malloc size %d\n", size);
+        MEM_DEBUG("malloc size %d", size);
     }
 
     /* alignment size */
-    size = MEM_ALIGN_UP(size, MEM_ALIGN_SIZE);
+    size = MEM_ALIGN_UP(size, MEM_ALIGN_BYTE);
 
     if (size > mem_size_aligned)
     {
-        PORT_PRINTF("no memory\n");
+        MEM_DEBUG("no memory");
         return NULL;
     }
 
-    /* every data block must be at least MIN_SIZE_ALIGNED long */
-    if (size < MIN_SIZE_ALIGNED)
+    /* every data block must be at least MEM_BLOCK_ALIGN_BYTE long */
+    if (size < MEM_BLOCK_ALIGN_BYTE)
     {
-        size = MIN_SIZE_ALIGNED;
+        size = MEM_BLOCK_ALIGN_BYTE;
     }
 
 #ifdef MEM_SAFETY
     /* take memory semaphore */
-    rt_sem_take(&heap_sem, RT_WAITING_FOREVER);
+    sem_wait(&heap_sem);
 #endif
 
     for (ptr = (uint8_t *)lfree - heap_ptr;
@@ -193,25 +195,25 @@ void *os_malloc(uint32_t size)
     {
         mem = (struct heap_mem *)&heap_ptr[ptr];
 
-        if ((!mem->used) && (mem->next - (ptr + SIZEOF_STRUCT_MEM)) >= size)
+        if ((!mem->used) && (mem->next - (ptr + MEM_BLOCK_SIZE)) >= size)
         {
             /* mem is not used and at least perfect fit is possible:
-             * mem->next - (ptr + SIZEOF_STRUCT_MEM) gives us the 'user data size' of mem */
+             * mem->next - (ptr + MEM_BLOCK_SIZE) gives us the 'user data size' of mem */
 
-            if (mem->next - (ptr + SIZEOF_STRUCT_MEM) >=
-                    (size + SIZEOF_STRUCT_MEM + MIN_SIZE_ALIGNED))
+            if (mem->next - (ptr + MEM_BLOCK_SIZE) >=
+                    (size + MEM_BLOCK_SIZE + MEM_BLOCK_ALIGN_BYTE))
             {
-                /* (in addition to the above, we test if another struct heap_mem (SIZEOF_STRUCT_MEM) containing
-                 * at least MIN_SIZE_ALIGNED of data also fits in the 'user data space' of 'mem')
+                /* (in addition to the above, we test if another struct heap_mem (MEM_BLOCK_SIZE) containing
+                 * at least MEM_BLOCK_ALIGN_BYTE of data also fits in the 'user data space' of 'mem')
                  * -> split large block, create empty remainder,
-                 * remainder must be large enough to contain MIN_SIZE_ALIGNED data: if
-                 * mem->next - (ptr + (2*SIZEOF_STRUCT_MEM)) == size,
+                 * remainder must be large enough to contain MEM_BLOCK_ALIGN_BYTE data: if
+                 * mem->next - (ptr + (2*MEM_BLOCK_SIZE)) == size,
                  * struct heap_mem would fit in but no data between mem2 and mem2->next
-                 * @todo we could leave out MIN_SIZE_ALIGNED. We would create an empty
+                 * @todo we could leave out MEM_BLOCK_ALIGN_BYTE. We would create an empty
                  *       region that couldn't hold data, but when mem->next gets freed,
                  *       the 2 regions would be combined, resulting in more free memory
                  */
-                ptr2 = ptr + SIZEOF_STRUCT_MEM + size;
+                ptr2 = ptr + MEM_BLOCK_SIZE + size;
 
                 /* create mem2 struct */
                 mem2       = (struct heap_mem *)&heap_ptr[ptr2];
@@ -223,12 +225,12 @@ void *os_malloc(uint32_t size)
                 mem->next = ptr2;
                 mem->used = 1;
 
-                if (mem2->next != mem_size_aligned + SIZEOF_STRUCT_MEM)
+                if (mem2->next != mem_size_aligned + MEM_BLOCK_SIZE)
                 {
                     ((struct heap_mem *)&heap_ptr[mem2->next])->prev = ptr2;
                 }
-#ifdef MEM_STATS
-                used_mem += (size + SIZEOF_STRUCT_MEM);
+#ifdef MEM_STATISTIC
+                used_mem += (size + MEM_BLOCK_SIZE);
                 if (max_mem < used_mem)
                 {
                     max_mem = used_mem;
@@ -245,7 +247,7 @@ void *os_malloc(uint32_t size)
                  * will always be used at this point!
                  */
                 mem->used = 1;
-#ifdef MEM_STATS
+#ifdef MEM_STATISTIC
                 used_mem += mem->next - ((uint8_t *)mem - heap_ptr);
                 if (max_mem < used_mem)
                 {
@@ -264,25 +266,25 @@ void *os_malloc(uint32_t size)
                     lfree = (struct heap_mem *)&heap_ptr[lfree->next];
                 }
 
-                PORT_ASSERT(((lfree == heap_end) || (!lfree->used)));
+                MEM_ASSERT(((lfree == heap_end) || (!lfree->used)));
             }
 #ifdef MEM_SAFETY
-            rt_sem_release(&heap_sem);
+            sem_post(&heap_sem);
 #endif
-            PORT_ASSERT((uint32_t)mem + SIZEOF_STRUCT_MEM + size <= (uint32_t)heap_end);
-            PORT_ASSERT((uint32_t)((uint8_t *)mem + SIZEOF_STRUCT_MEM) % MEM_ALIGN_SIZE == 0);
-            PORT_ASSERT((((uint32_t)mem) & (MEM_ALIGN_SIZE - 1)) == 0);
+            MEM_ASSERT((uint32_t)mem + MEM_BLOCK_SIZE + size <= (uint32_t)heap_end);
+            MEM_ASSERT((uint32_t)((uint8_t *)mem + MEM_BLOCK_SIZE) % MEM_ALIGN_BYTE == 0);
+            MEM_ASSERT((((uint32_t)mem) & (MEM_ALIGN_BYTE - 1)) == 0);
 
-            PORT_PRINTF("allocate memory at 0x%x, size: %d\n",
-                        (uint32_t)((uint8_t *)mem + SIZEOF_STRUCT_MEM),
+            MEM_DEBUG("allocate memory at 0x%x, size: %d",
+                        (uint32_t)((uint8_t *)mem + MEM_BLOCK_SIZE),
                         (uint32_t)(mem->next - ((uint8_t *)mem - heap_ptr)));
 
             /* return the memory data except mem struct */
-            return (uint8_t *)mem + SIZEOF_STRUCT_MEM;
+            return (uint8_t *)mem + MEM_BLOCK_SIZE;
         }
     }
 #ifdef MEM_SAFETY
-    rt_sem_release(&heap_sem);
+    sem_post(&heap_sem);
 #endif
     return NULL;
 }
@@ -305,10 +307,10 @@ void *os_realloc(void *rmem, uint32_t newsize)
     /*RT_DEBUG_NOT_IN_INTERRUPT;*/
 
     /* alignment size */
-    newsize = MEM_ALIGN_UP(newsize, MEM_ALIGN_SIZE);
+    newsize = MEM_ALIGN_UP(newsize, MEM_ALIGN_BYTE);
     if (newsize > mem_size_aligned)
     {
-        PORT_PRINTF("realloc: out of memory\n");
+        MEM_DEBUG("realloc: out of memory");
         return NULL;
     }
 
@@ -319,7 +321,7 @@ void *os_realloc(void *rmem, uint32_t newsize)
     }
 
 #ifdef MEM_SAFETY
-    rt_sem_take(&heap_sem, RT_WAITING_FOREVER);
+    sem_wait(&heap_sem);
 #endif
 
     if ((uint8_t *)rmem < (uint8_t *)heap_ptr ||
@@ -327,52 +329,52 @@ void *os_realloc(void *rmem, uint32_t newsize)
     {
 #ifdef MEM_SAFETY
         /* illegal memory */
-        rt_sem_release(&heap_sem);
+        sem_post(&heap_sem);
 #endif
 
         return rmem;
     }
 
-    mem = (struct heap_mem *)((uint8_t *)rmem - SIZEOF_STRUCT_MEM);
+    mem = (struct heap_mem *)((uint8_t *)rmem - MEM_BLOCK_SIZE);
 
     ptr = (uint8_t *)mem - heap_ptr;
-    size = mem->next - ptr - SIZEOF_STRUCT_MEM;
+    size = mem->next - ptr - MEM_BLOCK_SIZE;
     if (size == newsize)
     {
 #ifdef MEM_SAFETY
         /* the size is the same as */
-        rt_sem_release(&heap_sem);
+        sem_post(&heap_sem);
 #endif
         return rmem;
     }
 
-    if (newsize + SIZEOF_STRUCT_MEM + MIN_SIZE < size)
+    if (newsize + MEM_BLOCK_SIZE + MEM_BLOCK_MIN_SIZE < size)
     {
         /* split memory block */
-#ifdef MEM_STATS
+#ifdef MEM_STATISTIC
         used_mem -= (size - newsize);
 #endif
 
-        ptr2 = ptr + SIZEOF_STRUCT_MEM + newsize;
+        ptr2 = ptr + MEM_BLOCK_SIZE + newsize;
         mem2 = (struct heap_mem *)&heap_ptr[ptr2];
         mem2->magic = HEAP_MAGIC;
         mem2->used = 0;
         mem2->next = mem->next;
         mem2->prev = ptr;
         mem->next = ptr2;
-        if (mem2->next != mem_size_aligned + SIZEOF_STRUCT_MEM)
+        if (mem2->next != mem_size_aligned + MEM_BLOCK_SIZE)
         {
             ((struct heap_mem *)&heap_ptr[mem2->next])->prev = ptr2;
         }
 
         plug_holes(mem2);
 #ifdef MEM_SAFETY
-        rt_sem_release(&heap_sem);
+        sem_post(&heap_sem);
 #endif
         return rmem;
     }
 #ifdef MEM_SAFETY
-    rt_sem_release(&heap_sem);
+    sem_post(&heap_sem);
 #endif
 
     /* expand memory */
@@ -432,32 +434,32 @@ void os_free(void *rmem)
     {
         return;
     }
-    PORT_ASSERT((((uint32_t)rmem) & (MEM_ALIGN_SIZE - 1)) == 0);
-    PORT_ASSERT((uint8_t *)rmem >= (uint8_t *)heap_ptr &&
+    MEM_ASSERT((((uint32_t)rmem) & (MEM_ALIGN_BYTE - 1)) == 0);
+    MEM_ASSERT((uint8_t *)rmem >= (uint8_t *)heap_ptr &&
                 (uint8_t *)rmem < (uint8_t *)heap_end);
 
     if ((uint8_t *)rmem < (uint8_t *)heap_ptr ||
             (uint8_t *)rmem >= (uint8_t *)heap_end)
     {
-        PORT_PRINTF("illegal memory\n");
+        MEM_DEBUG("illegal memory");
         return;
     }
 
     /* Get the corresponding struct heap_mem ... */
-    mem = (struct heap_mem *)((uint8_t *)rmem - SIZEOF_STRUCT_MEM);
+    mem = (struct heap_mem *)((uint8_t *)rmem - MEM_BLOCK_SIZE);
 
-    PORT_PRINTF("release memory 0x%x, size: %d\n",
+    MEM_DEBUG("release memory 0x%x, size: %d",
                 (uint32_t)rmem,
                 (uint32_t)(mem->next - ((uint8_t *)mem - heap_ptr)));
 
 #ifdef MEM_SAFETY
     /* protect the heap from concurrent access */
-    rt_sem_take(&heap_sem, RT_WAITING_FOREVER);
+    sem_wait(&heap_sem);
 #endif
 
     /* ... which has to be in a used state ... */
-    PORT_ASSERT(mem->used);
-    PORT_ASSERT(mem->magic == HEAP_MAGIC);
+    MEM_ASSERT(mem->used);
+    MEM_ASSERT(mem->magic == HEAP_MAGIC);
     /* ... and is now unused. */
     mem->used  = 0;
     mem->magic = 0;
@@ -468,24 +470,23 @@ void os_free(void *rmem)
         lfree = mem;
     }
 
-#ifdef MEM_STATS
+#ifdef MEM_STATISTIC
     used_mem -= (mem->next - ((uint8_t *)mem - heap_ptr));
 #endif
 
     /* finally, see if prev or next are free also */
     plug_holes(mem);
 #ifdef MEM_SAFETY
-    rt_sem_release(&heap_sem);
+    sem_post(&heap_sem);
 #endif
 }
 
-#ifdef MEM_STATS
+#ifdef MEM_STATISTIC
 void os_mem_info(void)
 {
-    PORT_PRINTF("struct heap_mem=%d, MIN_SIZE_ALIGNED=%d\n", sizeof(struct heap_mem), MIN_SIZE_ALIGNED);
-    PORT_PRINTF("total memory: %d\n", mem_size_aligned);
-    PORT_PRINTF("used memory : %d\n", used_mem);
-    PORT_PRINTF("maximum allocated memory: %d\n", max_mem);
+    MEM_DEBUG("struct heap_mem=%d, MEM_BLOCK_ALIGN_BYTE=%d", sizeof(struct heap_mem), MEM_BLOCK_ALIGN_BYTE);
+    MEM_DEBUG("total memory: %d", mem_size_aligned);
+    MEM_DEBUG("used memory : %d", used_mem);
+    MEM_DEBUG("maximum allocated memory: %d", max_mem);
 }
 #endif
-

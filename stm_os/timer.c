@@ -3,26 +3,22 @@
 static list_t evtimer_head = {&evtimer_head, &evtimer_head};
 static list_t cbtimer_head = {&cbtimer_head, &cbtimer_head};
 
-/******************************************************************************
-*   event timer function
-*/
 /*
- * 增加一个事件定时器
- * @me		状态机对象
- * @sig		事件
- * @para	事件参数
- * @ms		超时时间
- * @flag	定时器标志：单触发和重复触发，定时器启动和停止标志
+ * Add a evt timer
+ * @me		state-machine
+ * @sig		evt wanto send
+ * @para	pointer para wanto send
+ * @ms		timeout
+ * @flag	oneshot&repeat,start&stop
  *
  * return
  */
-uint8_t evtimer_add(TMsm *me, signal_t sig, void *para, uint32_t ms, uint8_t flag)
+uint8_t evtimer_add(stm_t *me, evt_t sig, void *para, uint32_t ms, uint8_t flag)
 {
     evtimer_t *t;
     list_t *head;
     list_t *iter;
 
-    //
     head = &evtimer_head;
     iter = head->next;
     while (iter != head)
@@ -36,7 +32,6 @@ uint8_t evtimer_add(TMsm *me, signal_t sig, void *para, uint32_t ms, uint8_t fla
 
         iter = iter->next;
     }
-    //
 
     t = (evtimer_t *)os_malloc(sizeof(evtimer_t));
     if (t == NULL)
@@ -57,17 +52,12 @@ uint8_t evtimer_add(TMsm *me, signal_t sig, void *para, uint32_t ms, uint8_t fla
     }
     t->flag    = flag;
 
-    //
     list_insert(head, &t->list);
-    //
 
     return ERR_SUCCESS;
 }
 
-/*
- * 删除事件定时器
- */
-uint8_t evtimer_del(TMsm *me, signal_t sig)
+uint8_t evtimer_del(stm_t *me, evt_t sig)
 {
     evtimer_t *t;
     list_t *head;
@@ -83,7 +73,13 @@ uint8_t evtimer_del(TMsm *me, signal_t sig)
         if ((t->me == me) && (t->e.sig == sig))
         {
             list_delete(&t->list);
+			if (t->e.para)
+			{
+				os_free(t->e.para);
+				t->e.para = 0;
+			}
             os_free(t);
+			t = 0;
             return ERR_SUCCESS;
         }
 
@@ -94,12 +90,11 @@ uint8_t evtimer_del(TMsm *me, signal_t sig)
 }
 
 /*
- * 事件定时器设置标志
- * @me		要设置的状态机对象
- * @sig		要设置的事件
- * @flag	设置标志:start,stop,one_shot,repeat
+ * @me		state-machine
+ * @sig		evt
+ * @flag	set flag:start,stop,one_shot,repeat
  */
-uint8_t evtimer_set(TMsm *me, signal_t sig, uint8_t flag)
+uint8_t evtimer_set(stm_t *me, evt_t sig, uint8_t flag)
 {
     evtimer_t *t;
     list_t *head;
@@ -152,6 +147,11 @@ void evtimer_update(uint32_t elapse_ms)
                 else
                 {
                     list_delete(&t->list);
+					if (t->e.para)
+					{
+						os_free(t->e.para);
+						t->e.para = 0;
+					}
                     os_free(t);
                 }
             }
@@ -161,10 +161,6 @@ void evtimer_update(uint32_t elapse_ms)
     }
 }
 
-
-/******************************************************************************
-*  callback function timer
-*/
 uint8_t cbtimer_add(timer_func_t func, uint32_t ms, uint8_t flag)
 {
     cbtimer_t *t;
@@ -176,12 +172,10 @@ uint8_t cbtimer_add(timer_func_t func, uint32_t ms, uint8_t flag)
     while (iter != head)
     {
         t = list_entry(iter, cbtimer_t, list);
-
         if (t->func == func)
         {
             return ERR_EXISTED_TIMER;
         }
-
         iter = iter->next;
     }
 
@@ -208,18 +202,15 @@ uint8_t cbtimer_del(timer_func_t func)
 
     head = &cbtimer_head;
     iter = head->next;
-
     while (iter != head)
     {
         t = list_entry(iter, cbtimer_t, list);
-
         if (t->func == func)
         {
             list_delete(&t->list);
             os_free(t);
             return ERR_SUCCESS;
         }
-
         iter = iter->next;
     }
 
@@ -237,13 +228,11 @@ uint8_t cbtimer_set(timer_func_t func, uint8_t flag)
     while (iter != head)
     {
         t = list_entry (iter, cbtimer_t, list);
-
         if (t->func == func)
         {
             t->flag = flag;
             return ERR_SUCCESS;
         }
-
         iter = iter->next;
     }
     return ERR_NULL_OBJECT;
@@ -273,21 +262,23 @@ void cbtimer_update(uint32_t elapse_ms)
             {
                 uint8_t r = t->func(t->counter);
                 t->timeout = t->reload_timeout;
-                switch (r)
-                {
-                case TIMER_RET_INC:
+                if (r == TIMER_RET_INC)
+				{
                     t->counter++;
-                    break;
-                case TIMER_RET_CLR:
+				}
+                else if (r == TIMER_RET_CLR)
+				{
                     t->counter = 0;
-                    break;
-                case TIMER_RET_DEL:
+				}
+                else if (e == TIMER_RET_DEL)
+				{
                     list_delete(&t->list);
                     os_free(t);
-                    break;
-                default:
-                    break;
                 }
+				else
+				{
+					;
+				}
             }
         }
 

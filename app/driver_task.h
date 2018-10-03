@@ -3,7 +3,7 @@
 
 
 extern TActive driver_act;
-extern TEvt driver_queue[10];
+extern evt_t driver_queue[10];
 void driver_ctor(void);
 
 #endif

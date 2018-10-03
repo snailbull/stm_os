@@ -8,7 +8,7 @@
 *
 */
 TActive app_act;
-TEvt app_queue[10];
+evt_t app_queue[10];
 
 uint8_t lcd_timer(uint32_t counter)
 {
@@ -24,15 +24,15 @@ uint8_t lcd_timer(uint32_t counter)
 /******************************************************************************
 *
 */
-static uint8_t app_init(TMsm *me, TEvt *e);
-static uint8_t app_task(TMsm *me, TEvt *e);
+static uint8_t app_init(stm_t *me, evt_t *e);
+static uint8_t app_task(stm_t *me, evt_t *e);
 
 void app_ctor(void)
 {
     hsm_ctor(&app_act.super, app_init);
 }
 
-static uint8_t app_init(TMsm *me, TEvt *e)
+static uint8_t app_init(stm_t *me, evt_t *e)
 {
     if (e->sig == STM_INIT_SIG)
     {
@@ -42,7 +42,7 @@ static uint8_t app_init(TMsm *me, TEvt *e)
     return STM_TRAN(app_task);
 }
 
-static uint8_t app_task(TMsm *me, TEvt *e)
+static uint8_t app_task(stm_t *me, evt_t *e)
 {
     uint8_t r = STM_RET_HANDLED;
 

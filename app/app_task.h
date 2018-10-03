@@ -3,7 +3,7 @@
 
 
 extern TActive app_act;
-extern TEvt app_queue[10];
+extern evt_t app_queue[10];
 void app_ctor(void);
 
 #endif

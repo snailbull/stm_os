@@ -9,7 +9,7 @@
 * state function
 */
 TActive driver_act;
-TEvt driver_queue[10];
+evt_t driver_queue[10];
 
 /******************************************************************************
 * cbtimer function
@@ -30,8 +30,8 @@ uint8_t adc_timer(uint32_t counter)
 /******************************************************************************
 * state function
 */
-uint8_t driver_init(TMsm *me, TEvt *e);
-uint8_t driver_task(TMsm *me, TEvt *e);
+uint8_t driver_init(stm_t *me, evt_t *e);
+uint8_t driver_task(stm_t *me, evt_t *e);
 
 
 void driver_ctor(void)
@@ -39,7 +39,7 @@ void driver_ctor(void)
     hsm_ctor(&driver_act.super, driver_init);
 }
 
-uint8_t driver_init(TMsm *me, TEvt *e)
+uint8_t driver_init(stm_t *me, evt_t *e)
 {
     if (e->sig == STM_INIT_SIG)
     {
@@ -49,7 +49,7 @@ uint8_t driver_init(TMsm *me, TEvt *e)
     return STM_TRAN(driver_task);
 }
 
-uint8_t driver_task(TMsm *me, TEvt *e)
+uint8_t driver_task(stm_t *me, evt_t *e)
 {
     uint8_t r = STM_RET_HANDLED;
 

@@ -1,8 +1,8 @@
 #include "stm_os.h"
 
-static uint8_t rdy_grp;
-static uint8_t rdy_tbl[CFG_RDY_TBL_SIZE];
-static const uint8_t map_tbl[256] =
+static uint8_t s_rdy_grp;
+static uint8_t s_rdy_tbl[CFG_RDY_TBL_SIZE];
+static const uint8_t s_map_tbl[256] =
 {
     0u, 0u, 1u, 0u, 2u, 0u, 1u, 0u, 3u, 0u, 1u, 0u, 2u, 0u, 1u, 0u, /* 0x00 to 0x0F */
     4u, 0u, 1u, 0u, 2u, 0u, 1u, 0u, 3u, 0u, 1u, 0u, 2u, 0u, 1u, 0u, /* 0x10 to 0x1F */
@@ -22,8 +22,8 @@ static const uint8_t map_tbl[256] =
     4u, 0u, 1u, 0u, 2u, 0u, 1u, 0u, 3u, 0u, 1u, 0u, 2u, 0u, 1u, 0u  /* 0xF0 to 0xFF */
 };
 static uint8_t message_nesting_cnt;
-//static uint8_t power_grp;
-//static uint8_t power_tbl[CFG_RDY_TBL_SIZE];
+static uint8_t power_grp;
+static uint8_t power_tbl[CFG_RDY_TBL_SIZE];
 
 /*
  * Initialize the activeCBs[]
@@ -33,7 +33,7 @@ static uint8_t message_nesting_cnt;
 void os_init(void)
 {
     TActive *act;
-    TEvt evt;
+    evt_t evt;
     uint8_t i;
 
     for (i = 0; i < max_active_object; i++)
@@ -72,7 +72,7 @@ void os_init(void)
  *
  * Note(s) it might be called in interrupt. MESSAGE WILL PROCESSING ASYNCHRONOUS.
  */
-uint8_t os_post_message(TActive *act, signal_t sig, void *para, uint8_t opt)
+uint8_t os_post_message(TActive *act, evt_t sig, void *para, uint8_t opt)
 {
     TActiveCB *acb = &activeCBs[act->prio];
     PORT_SR_ALLOC();
@@ -111,11 +111,12 @@ uint8_t os_post_message(TActive *act, signal_t sig, void *para, uint8_t opt)
     act->used++;
     if (act->used == 1)
     {
-        rdy_grp |= acb->act->prio_bit_y;
-        rdy_tbl[acb->act->prio_y] |= acb->act->prio_bit_x;
+        s_rdy_grp |= acb->act->prio_bit_y;
+        s_rdy_tbl[acb->act->prio_y] |= acb->act->prio_bit_x;
     }
 
     PORT_CPU_ENABLE();
+    os_wakeup();
 
     return ERR_SUCCESS;
 }
@@ -129,9 +130,9 @@ uint8_t os_post_message(TActive *act, signal_t sig, void *para, uint8_t opt)
  *
  * Note(s) it might be called in interrupt. MESSAGE WILL PROCESSING SYNCHRONOUS.
  */
-uint8_t os_send_message(TActive *act, signal_t sig, void *para)
+uint8_t os_send_message(TActive *act, evt_t sig, void *para)
 {
-    TEvt evt = {sig, para};
+    evt_t evt = {sig, para};
     message_nesting_cnt++;	/* ++ and -- always in pairs */
     if (message_nesting_cnt > CFG_MSG_NEST_DEPTH)
     {
@@ -156,7 +157,7 @@ void os_dispatch(void)
 {
     TActiveCB *acb;
     TActive *act;
-    TEvt evt;
+    evt_t evt;
     uint8_t y;
     uint8_t prio_highest_rdy;
     uint8_t i;
@@ -164,11 +165,11 @@ void os_dispatch(void)
 
     PORT_CPU_DISABLE();
 
-    if (rdy_grp)                /* anyone active object get events. */
+    if (s_rdy_grp)                /* anyone active object get events. */
     {
         /* find the highest ready active object and activeCB. */
-        y = map_tbl[rdy_grp];
-        prio_highest_rdy = ( (y << 3) + map_tbl[rdy_tbl[y]]);
+        y = s_map_tbl[s_rdy_grp];
+        prio_highest_rdy = ( (y << 3) + s_map_tbl[s_rdy_tbl[y]]);
 
         acb = &activeCBs[prio_highest_rdy];
         act = activeCBs[prio_highest_rdy].act;
@@ -177,10 +178,10 @@ void os_dispatch(void)
         act->used--;
         if (act->used == 0) /* no event in queue, clear active object's rdy bit */
         {
-            rdy_tbl[act->prio_y] &= ~act->prio_bit_x;
-            if (rdy_tbl[act->prio_y] == 0)
+            s_rdy_tbl[act->prio_y] &= ~act->prio_bit_x;
+            if (s_rdy_tbl[act->prio_y] == 0)
             {
-                rdy_grp &= ~act->prio_bit_y;
+                s_rdy_grp &= ~act->prio_bit_y;
             }
         }
 
@@ -200,11 +201,20 @@ void os_dispatch(void)
     else
     {
         PORT_CPU_ENABLE();
-#if CFG_POWER_SAVING > 0u
-        /* power manegement */
-        //os_sleep();
-#endif
+        os_sleep();
     }
+}
+void os_sleep(void)
+{
+#if CFG_POWER_SAVING > 0u
+	PORT_OS_SLEEP();
+#endif
+}
+void os_wakeup(void)
+{
+#if CFG_POWER_SAVING > 0u
+	PORT_OS_WKUP();
+#endif
 }
 
 /*

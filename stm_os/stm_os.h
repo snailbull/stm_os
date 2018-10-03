@@ -10,7 +10,6 @@ extern "C" {
 #include <stdlib.h>
 
 #include "type.h"
-#include "port.h"
 
 #include "stm.h"
 #include "os.h"
@@ -22,4 +21,3 @@ extern "C" {
 #endif
 
 #endif
-
