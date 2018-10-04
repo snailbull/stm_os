@@ -15,7 +15,7 @@ uint8_t lcd_timer(uint32_t counter)
     printf("app counter:%d\n", counter);
     if (counter == 4)
     {
-        printf("return:%d\n", evtimer_del(&app_act.super, FLUSH_SIG));
+        printf("return:%d\n", evtimer_del(&app_act.me, FLUSH_SIG));
         return TIMER_RET_CLR;
     }
     return TIMER_RET_INC;
@@ -29,7 +29,7 @@ static uint8_t app_task(stm_t *me, evt_t *e);
 
 void app_ctor(void)
 {
-    hsm_ctor(&app_act.super, app_init);
+    hsm_ctor(&app_act.me, app_init);
 }
 
 static uint8_t app_init(stm_t *me, evt_t *e)

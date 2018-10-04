@@ -49,10 +49,8 @@ enum
 #define STM_TRAN(state)         (me->temp = state,  STM_RET_TRAN)
 #define STM_FATHER(father)      (me->temp = father, STM_RET_FATHER)
 
-#define STM_TRIG(state, sig)    ( (*(state))(me, &STMGlobalEvent[sig]) )
-
+#define STM_TRIG(state, sig)    ( (*(state))(me, &s_stm_global_evt[sig]) )
 #define STM_ENTER(state)        STM_TRIG(state, STM_EVT_ENTRY)
-
 #define STM_EXIT(state)         STM_TRIG(state, STM_EVT_EXIT)
 
 

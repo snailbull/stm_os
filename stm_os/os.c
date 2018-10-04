@@ -24,6 +24,7 @@ static const uint8_t s_map_tbl[256] =
 static uint8_t message_nesting_cnt;
 static uint8_t power_grp;
 static uint8_t power_tbl[CFG_RDY_TBL_SIZE];
+static list_t active_head;
 
 /*
  * Initialize the activeCBs[]
@@ -39,7 +40,7 @@ void os_init(void)
     for (i = 0; i < max_active_object; i++)
     {
         act = activeCBs[i].act;
-        PORT_ASSERT(act != 0);
+        OS_ASSERT(act != 0);
 
         act->prio   = i;
         act->head   = 0;
@@ -58,7 +59,7 @@ void os_init(void)
     for (i = 0; i < max_active_object; i++)
     {
         act = activeCBs[i].act;
-        act->super.vptr->init(&act->super, &evt);
+        act->me.vptr->init(&act->me, &evt);
     }
 }
 
@@ -68,14 +69,13 @@ void os_init(void)
  * @act   active object
  * @sig   signal num
  * @para  signal param
- * @opt   send to front or back of msg queue, SEND_TO_FRONT  SEND_TO_END
+ * @opt   send to front or back of msg queue, SEND_TO_FRONT  SEND_TO_BACK
  *
  * Note(s) it might be called in interrupt. MESSAGE WILL PROCESSING ASYNCHRONOUS.
  */
 uint8_t os_post_message(TActive *act, evt_t sig, void *para, uint8_t opt)
 {
     TActiveCB *acb = &activeCBs[act->prio];
-    PORT_SR_ALLOC();
 
     PORT_CPU_DISABLE();
 
@@ -144,7 +144,7 @@ uint8_t os_send_message(TActive *act, evt_t sig, void *para)
     }
 
     /* recursive dispatch */
-    act->super.vptr->dispatch(&act->super, &evt);
+    act->me.vptr->dispatch(&act->me, &evt);
 
     if (message_nesting_cnt)
     {
@@ -161,7 +161,6 @@ void os_dispatch(void)
     uint8_t y;
     uint8_t prio_highest_rdy;
     uint8_t i;
-    PORT_SR_ALLOC();
 
     PORT_CPU_DISABLE();
 
@@ -196,7 +195,7 @@ void os_dispatch(void)
         PORT_CPU_ENABLE();
 
         /* process this event */
-        act->super.vptr->dispatch(&act->super, &evt);
+        act->me.vptr->dispatch(&act->me, &evt);
     }
     else
     {
@@ -207,13 +206,13 @@ void os_dispatch(void)
 void os_sleep(void)
 {
 #if CFG_POWER_SAVING > 0u
-	PORT_OS_SLEEP();
+	sem_wait(&os_sem);
 #endif
 }
 void os_wakeup(void)
 {
 #if CFG_POWER_SAVING > 0u
-	PORT_OS_WKUP();
+	sem_post(&os_sem);
 #endif
 }
 

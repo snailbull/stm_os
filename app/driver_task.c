@@ -20,7 +20,7 @@ uint8_t adc_timer(uint32_t counter)
 
     if (counter == 2)
     {
-        evtimer_del(&driver_act.super, KEY_SIG);
+        evtimer_del(&driver_act.me, KEY_SIG);
         os_post_message(&app_act, APP_NET_SIG, 0, SEND_TO_END);
         return TIMER_RET_DEL;
     }
@@ -36,7 +36,7 @@ uint8_t driver_task(stm_t *me, evt_t *e);
 
 void driver_ctor(void)
 {
-    hsm_ctor(&driver_act.super, driver_init);
+    hsm_ctor(&driver_act.me, driver_init);
 }
 
 uint8_t driver_init(stm_t *me, evt_t *e)

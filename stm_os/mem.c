@@ -6,7 +6,7 @@
 #define MEM_STATISTIC
 #define MEM_ALIGN_BYTE	8
 #define MEM_DEBUG		0
-//#define MEM_SAFETY
+#define MEM_SAFETY
 #define MEM_ALIGN_UP(size, align)	(((size) + (align) - 1) & ~((align) - 1))
 #define MEM_ALIGN_DOWN(size, align)	((size) & ~((align) - 1))
 #define MEM_BLOCK_MIN_SIZE      12

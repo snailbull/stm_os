@@ -62,13 +62,13 @@ void fsm_dispatch(stm_t *me, evt_t *e)
 /*
  * fsm constructor
  */
-void fsm_ctor(stm_t *me, stm_func_t initial)
+void fsm_ctor(stm_t *me, stm_func_t init)
 {
     static const stm_vtbl_t vtbl = {fsm_init, fsm_dispatch};		/* set visual table */
 
     me->vptr = &vtbl;
     me->state = 0;
-    me->temp = initial;
+    me->temp = init;
 }
 
 /*
@@ -175,8 +175,7 @@ void hsm_dispatch(stm_t *me, evt_t *e)
 
         /* move up to the father state to find suitable state to handle the sig */
 
-    }
-    while (r == STM_RET_FATHER);
+    }while (r == STM_RET_FATHER);
 
     /* if state transition happened then process it */
     if (r == STM_RET_TRAN)
@@ -424,11 +423,11 @@ uint8_t hsm_top (stm_t *me, evt_t *e)
 /*
  * hsm constructor
  */
-void hsm_ctor(stm_t *me, stm_func_t initial)
+void hsm_ctor(stm_t *me, stm_func_t init)
 {
     static const stm_vtbl_t vtbl = {hsm_init, hsm_dispatch};		/* set visual table */
 
     me->vptr = &vtbl;
     me->state = hsm_top;
-    me->temp = initial;
+    me->temp = init;
 }

@@ -4,3 +4,4 @@ AStyle.exe
 astyle-format.bat
 *.dis
 *.exe
+stm_test
