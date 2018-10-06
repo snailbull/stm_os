@@ -3,72 +3,43 @@
 #include "user_event.h"
 
 #include <stdio.h>
+#include <curses.h>
 
-/******************************************************************************
-*
-*/
-TActive app_act;
-evt_t app_queue[10];
+#define APP_PRINTF(fmt,...)  mvprintw(1,5,"app:" fmt, ##__VA_ARGS__)
 
-uint8_t lcd_timer(uint32_t counter)
+static uint8_t app_task(stm_t *me, msg_t *e);
+
+uint8_t app_init(stm_t *me, msg_t *e)
 {
-    printf("app counter:%d\n", counter);
-    if (counter == 4)
+    if (e->sig == STM_EVT_INIT)
     {
-        printf("return:%d\n", evtimer_del(&app_act.me, FLUSH_SIG));
-        return TIMER_RET_CLR;
-    }
-    return TIMER_RET_INC;
-}
-
-/******************************************************************************
-*
-*/
-static uint8_t app_init(stm_t *me, evt_t *e);
-static uint8_t app_task(stm_t *me, evt_t *e);
-
-void app_ctor(void)
-{
-    hsm_ctor(&app_act.me, app_init);
-}
-
-static uint8_t app_init(stm_t *me, evt_t *e)
-{
-    if (e->sig == STM_INIT_SIG)
-    {
-        printf("app_init!\n");
+        APP_PRINTF("app_init!");
     }
 
     return STM_TRAN(app_task);
 }
 
-static uint8_t app_task(stm_t *me, evt_t *e)
+static uint8_t app_task(stm_t *me, msg_t *e)
 {
     uint8_t r = STM_RET_HANDLED;
 
     switch (e->sig)
     {
-    case APP_NET_SIG:
-        printf("app:APP_NET_SIG\n");
-        break;
-
     case FLUSH_SIG:
-        printf("app:FLUSH_SIG\n");
+        APP_PRINTF("app:FLUSH_SIG");
         break;
 
-    case STM_INIT_SIG:
-        printf("app_task:init\n");
+    case STM_EVT_INIT:
+        APP_PRINTF("app_task:init");
         break;
 
-    case STM_ENTRY_SIG:
-        printf("app_task:entry\n");
-
+    case STM_EVT_ENTRY:
+        APP_PRINTF("app_task:entry");
         evtimer_add(me, FLUSH_SIG, 0, 1000, TIMER_FLAG_START | TIMER_FLAG_REPEAT);
-        cbtimer_add(lcd_timer, 500, TIMER_FLAG_START);
         break;
 
-    case STM_EXIT_SIG:
-        printf("app_task:exit\n");
+    case STM_EVT_EXIT:
+        APP_PRINTF("app_task:exit");
         break;
 
     default:
@@ -78,4 +49,3 @@ static uint8_t app_task(stm_t *me, evt_t *e)
 
     return r;
 }
-

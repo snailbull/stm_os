@@ -21,7 +21,7 @@ TOPDIR  := $(shell pwd)
 TARGET := stm_test
 T_dis := $(TARGET).dis
 
-CFLAGS :=  -O2 -g -Wno-pointer-to-int-cast
+CFLAGS :=  -O2 -g -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast
 CFLAGS += -I. \
 	-I$(TOPDIR)/fcmd	\
 	-I$(TOPDIR)/app	\
@@ -31,7 +31,7 @@ LDFLAGS := \
 	-lm \
 	-pthread	\
 	-lc	\
-	-lreadline
+	-lreadline -lncurses
 
 obj-y += \
 	fcmd/			\

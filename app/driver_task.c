@@ -4,77 +4,43 @@
 #include "user_event.h"
 
 #include <stdio.h>
+#include <curses.h>
 
-/******************************************************************************
-* state function
-*/
-TActive driver_act;
-evt_t driver_queue[10];
+#define DRV_PRINTF(fmt,...)  mvprintw(2,5,"drv:" fmt, ##__VA_ARGS__)
 
-/******************************************************************************
-* cbtimer function
-*/
-uint8_t adc_timer(uint32_t counter)
+uint8_t driver_task(stm_t *me, msg_t *e);
+
+uint8_t driver_init(stm_t *me, msg_t *e)
 {
-    printf("adc:%d\n", counter);
-
-    if (counter == 2)
+    if (e->sig == STM_EVT_INIT)
     {
-        evtimer_del(&driver_act.me, KEY_SIG);
-        os_post_message(&app_act, APP_NET_SIG, 0, SEND_TO_END);
-        return TIMER_RET_DEL;
-    }
-    return TIMER_RET_INC;
-}
-
-/******************************************************************************
-* state function
-*/
-uint8_t driver_init(stm_t *me, evt_t *e);
-uint8_t driver_task(stm_t *me, evt_t *e);
-
-
-void driver_ctor(void)
-{
-    hsm_ctor(&driver_act.me, driver_init);
-}
-
-uint8_t driver_init(stm_t *me, evt_t *e)
-{
-    if (e->sig == STM_INIT_SIG)
-    {
-        printf("driver_init!\n");
+        DRV_PRINTF("driver_init!");
     }
 
     return STM_TRAN(driver_task);
 }
 
-uint8_t driver_task(stm_t *me, evt_t *e)
+uint8_t driver_task(stm_t *me, msg_t *e)
 {
     uint8_t r = STM_RET_HANDLED;
 
     switch (e->sig)
     {
     case KEY_SIG:
-        printf("key_sig\n");
+        DRV_PRINTF("driver:key_sig");
         break;
 
-    case LED_SIG:
-        printf("led_sig\n");
+    case STM_EVT_INIT:
+        DRV_PRINTF("driver_task:init");
         break;
 
-    case STM_INIT_SIG:
-        printf("driver_task:init\n");
-        break;
-
-    case STM_ENTRY_SIG:
-        printf("driver_task:entry\n");
+    case STM_EVT_ENTRY:
+        DRV_PRINTF("driver_task:entry");
         evtimer_add(me, KEY_SIG, 0, 1000, TIMER_FLAG_REPEAT | TIMER_FLAG_START);
-        cbtimer_add(adc_timer, 2000, TIMER_FLAG_START);
         break;
 
-    case STM_EXIT_SIG:
-        printf("driver_task:exit\n");
+    case STM_EVT_EXIT:
+        DRV_PRINTF("driver_task:exit");
         break;
 
     default:
@@ -84,4 +50,3 @@ uint8_t driver_task(stm_t *me, evt_t *e)
 
     return r;
 }
-

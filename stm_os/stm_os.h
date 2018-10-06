@@ -12,7 +12,7 @@ extern "C" {
 #include "type.h"
 
 #include "stm.h"
-#include "os.h"
+#include "actor.h"
 #include "timer.h"
 #include "mem.h"
 

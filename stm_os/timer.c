@@ -13,7 +13,7 @@ static list_t cbtimer_head = {&cbtimer_head, &cbtimer_head};
  *
  * return
  */
-uint8_t evtimer_add(stm_t *me, evt_t sig, void *para, uint32_t ms, uint8_t flag)
+uint8_t evtimer_add(stm_t *me, int sig, void *para, uint32_t ms, uint8_t flag)
 {
     evtimer_t *t;
     list_t *head;
@@ -57,7 +57,7 @@ uint8_t evtimer_add(stm_t *me, evt_t sig, void *para, uint32_t ms, uint8_t flag)
     return ERR_SUCCESS;
 }
 
-uint8_t evtimer_del(stm_t *me, evt_t sig)
+uint8_t evtimer_del(stm_t *me, int sig)
 {
     evtimer_t *t;
     list_t *head;
@@ -94,7 +94,7 @@ uint8_t evtimer_del(stm_t *me, evt_t sig)
  * @sig		evt
  * @flag	set flag:start,stop,one_shot,repeat
  */
-uint8_t evtimer_set(stm_t *me, evt_t sig, uint8_t flag)
+uint8_t evtimer_set(stm_t *me, int sig, uint8_t flag)
 {
     evtimer_t *t;
     list_t *head;
@@ -139,7 +139,7 @@ void evtimer_update(uint32_t elapse_ms)
             }
             else
             {
-                os_post_message((TActive *)(t->me), t->e.sig, t->e.para, SEND_TO_END);
+                actor_post_message((actor_t *)(t->me), t->e.sig, t->e.para, SEND_TO_BACK);
                 if (t->flag & TIMER_FLAG_REPEAT)
                 {
                     t->timeout = t->reload_timeout;
@@ -270,7 +270,7 @@ void cbtimer_update(uint32_t elapse_ms)
 				{
                     t->counter = 0;
 				}
-                else if (e == TIMER_RET_DEL)
+                else if (r == TIMER_RET_DEL)
 				{
                     list_delete(&t->list);
                     os_free(t);

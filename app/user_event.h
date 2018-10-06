@@ -5,11 +5,8 @@
 
 enum
 {
-    KEY_SIG = STM_USER_SIG,
-    ADC_SIG,
-    LED_SIG,
+    KEY_SIG = STM_EVT_USER,
     FLUSH_SIG,
-    APP_NET_SIG,
 };
 
 #endif

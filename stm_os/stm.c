@@ -1,6 +1,6 @@
 #include "stm_os.h"
 
-static evt_t s_stm_global_evt[4] =
+static msg_t s_stm_global_evt[4] =
 {
     { STM_EVT_EMPTY, 0},
     { STM_EVT_ENTRY, 0},
@@ -16,18 +16,18 @@ static evt_t s_stm_global_evt[4] =
  *
  * Note(s)
  */
-void fsm_init (stm_t *me, evt_t *e)
+void fsm_init (stm_t *me, msg_t *e)
 {
     uint8_t ret;
     if (me->temp == 0)
     {
-        OS_ASSERT (0);
+        STM_ASSERT (0);
     }
 
     ret = (*me->temp) (me, e);          /* do the fsm constructor init function */
     if (ret != STM_RET_TRAN)            /* transition must happen here */
     {
-        OS_ASSERT (0);
+        STM_ASSERT (0);
     }
 
     STM_TRIG (me->temp, STM_EVT_ENTRY); /* trig the STM_EVT_ENTRY to the new transitioned state */
@@ -41,13 +41,13 @@ void fsm_init (stm_t *me, evt_t *e)
  *
  * Note(s)
  */
-void fsm_dispatch(stm_t *me, evt_t *e)
+void fsm_dispatch(stm_t *me, msg_t *e)
 {
     uint8_t ret;
 
     if (me->state != me->temp)          /* State must be stable here */
     {
-        OS_ASSERT (0);
+        STM_ASSERT (0);
     }
 
     ret = (*me->state) (me, e);         /* exceute the state function with new event */
@@ -78,7 +78,7 @@ void fsm_ctor(stm_t *me, stm_func_t init)
  *
  * Note(s)
  */
-void hsm_init (stm_t *me, evt_t *e)
+void hsm_init (stm_t *me, msg_t *e)
 {
     uint8_t ret;
     int8_t ip;
@@ -87,18 +87,18 @@ void hsm_init (stm_t *me, evt_t *e)
 
     if (me->temp == 0)
     {
-        OS_ASSERT (0);
+        STM_ASSERT (0);
     }
 
     if (t != hsm_top) /* if state is not equal to the hsm top state, just assert */
     {
-        OS_ASSERT (0);
+        STM_ASSERT (0);
     }
 
     ret = (*me->temp) (me, e);          /* do the hsm constructor init function */
     if (ret != STM_RET_TRAN)            /* transition must happen here */
     {
-        OS_ASSERT (0);
+        STM_ASSERT (0);
     }
 
     /*Becareful STM_EVT_INIT must trig state to the nested children state, otherwise hsm crash*/
@@ -120,7 +120,7 @@ void hsm_init (stm_t *me, evt_t *e)
 
         if (ip >= STM_MAX_NEST_DEPTH)
         {
-            OS_ASSERT (0);
+            STM_ASSERT (0);
         }
 
         /* trig STM_EVT_ENTRY from father source state to nested children state */
@@ -149,7 +149,7 @@ void hsm_init (stm_t *me, evt_t *e)
  * @e is the trig event
  *
  */
-void hsm_dispatch(stm_t *me, evt_t *e)
+void hsm_dispatch(stm_t *me, msg_t *e)
 {
     uint8_t r;
     int8_t ip;
@@ -160,7 +160,7 @@ void hsm_dispatch(stm_t *me, evt_t *e)
 
     if (t != me->temp)              /* state must be stable here */
     {
-        OS_ASSERT (0);
+        STM_ASSERT (0);
     }
 
     do
@@ -253,7 +253,7 @@ void hsm_dispatch(stm_t *me, evt_t *e)
 
                                 if (ip >= STM_MAX_NEST_DEPTH)
                                 {
-                                    OS_ASSERT (0);
+                                    STM_ASSERT (0);
                                 }
 
                                 --ip;
@@ -269,7 +269,7 @@ void hsm_dispatch(stm_t *me, evt_t *e)
                         {
                             if (ip >= STM_MAX_NEST_DEPTH)
                             {
-                                OS_ASSERT (0);
+                                STM_ASSERT (0);
                             }
 
                             STM_EXIT (s);
@@ -357,7 +357,7 @@ void hsm_dispatch(stm_t *me, evt_t *e)
 
             if (ip >= STM_MAX_NEST_DEPTH)
             {
-                OS_ASSERT (0);
+                STM_ASSERT (0);
             }
 
             /* trig STM_EVT_ENTRY from father source state to nested transition children state */
@@ -385,12 +385,12 @@ void hsm_dispatch(stm_t *me, evt_t *e)
  * Returns   if the state is the father state of current state, it also return 1.
  *
  */
-uint8_t is_hsm_in_state (stm_t *me, stm_func_t state)
+uint8_t hsm_in_state(stm_t *me, stm_func_t state)
 {
     uint8_t inState = 0;
     uint8_t r;
 
-    OS_ASSERT (me->temp == me->state);
+    STM_ASSERT (me->temp == me->state);
     do
     {
         if (me->temp == state)
@@ -413,7 +413,7 @@ uint8_t is_hsm_in_state (stm_t *me, stm_func_t state)
 /*
  * exec top of state machine, top of hsm ignore all event
  */
-uint8_t hsm_top (stm_t *me, evt_t *e)
+uint8_t hsm_top (stm_t *me, msg_t *e)
 {
     me = me;
     e = e;

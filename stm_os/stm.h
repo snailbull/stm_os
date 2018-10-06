@@ -1,20 +1,20 @@
 #ifndef _STM_H_
 #define _STM_H_
 
-typedef struct evt_t
+typedef struct msg_t
 {
-    evt_t sig;
+    int sig;
     void *para;
-} evt_t;
+} msg_t;
 
 typedef struct stm_t stm_t;
-typedef uint8_t (*stm_func_t) (stm_t *me, evt_t *e);
 typedef struct stm_vtbl_t stm_vtbl_t;
+typedef uint8_t (*stm_func_t) (stm_t *me, msg_t *e);
 
 struct stm_vtbl_t
 {
-    void (*init)(stm_t *me, evt_t *e);		/* hsm_init or fsm_init */
-    void (*dispatch)(stm_t *me, evt_t *e);	/* hsm_dispatch or fsm_dispatch */
+    void (*init)(stm_t *me, msg_t *e);		/* hsm_init or fsm_init */
+    void (*dispatch)(stm_t *me, msg_t *e);	/* hsm_dispatch or fsm_dispatch */
 };
 
 struct stm_t
@@ -54,12 +54,28 @@ enum
 #define STM_EXIT(state)         STM_TRIG(state, STM_EVT_EXIT)
 
 
-void    fsm_init    (stm_t *me, evt_t *e);
-void    fsm_dispatch(stm_t *me, evt_t *e);
+#define STM_DEBUG_ON
+#ifdef STM_DEBUG_ON
+#define STM_PRINTF(format, ...)    printf("[stm.c,%d]:" format "\r\n", __LINE__, ##__VA_ARGS__)
+#define STM_ASSERT(EX)                                                       \
+	if (!(EX))                                                                \
+	{                                                                         \
+		volatile char dummy = 0;                                              \
+		/* CPU_SR_Save(); */                                                        \
+		STM_PRINTF("(%s) assert failed at %s:%d \n", #EX, __FUNCTION__, __LINE__);\
+		while (dummy == 0);                                                   \
+	}
+#else
+#define OS_PRINTF(format, ...)
+#define STM_ASSERT(ex)
+#endif
+
+void    fsm_init    (stm_t *me, msg_t *e);
+void    fsm_dispatch(stm_t *me, msg_t *e);
 void    fsm_ctor    (stm_t *me, stm_func_t init);
-uint8_t hsm_top     (stm_t *me, evt_t *e);
-void    hsm_init    (stm_t *me, evt_t *e);
-void    hsm_dispatch(stm_t *me, evt_t *e);
+uint8_t hsm_top     (stm_t *me, msg_t *e);
+void    hsm_init    (stm_t *me, msg_t *e);
+void    hsm_dispatch(stm_t *me, msg_t *e);
 void    hsm_ctor    (stm_t *me, stm_func_t init);
 uint8_t hsm_in_state(stm_t *me, stm_func_t state);
 
