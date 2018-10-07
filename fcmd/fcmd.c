@@ -47,6 +47,10 @@ static int8_t get_args_num(uint8_t *str, uint8_t *key);
 static void get_args(uint8_t *str, uint8_t *key, _args_t *args);
 static uint8_t *get_fname(uint8_t *str, uint8_t *len);
 
+int fcmd_putc(int ch)
+{
+    PRINTF("%c", ch);
+}
 /*
  * 执行模块定义的指令
  * @n 指令序号，指令CmdTbl中的序号

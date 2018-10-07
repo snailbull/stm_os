@@ -1,7 +1,7 @@
 #ifndef _MEM_H_
 #define _MEM_H_
 
-#define MEM_DEBUG_ON
+//#define MEM_DEBUG_ON
 #ifdef MEM_DEBUG_ON
 #define MEM_DEBUG(fmt,...)    printf("[mem.c,%d]:" fmt "\r\n", __LINE__,##__VA_ARGS__)
 #define MEM_ASSERT(e)				\

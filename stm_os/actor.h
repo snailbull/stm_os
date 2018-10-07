@@ -5,7 +5,7 @@
 
 #define STM_DEBUG_ON
 #ifdef STM_DEBUG_ON
-#define ACT_PRINTF(format, ...)    printf("[active.c,%d]:" format "\r\n", __LINE__, ##__VA_ARGS__)
+#define ACT_PRINTF(format, ...)    printf("[actor.c,%d]:" format "\r\n", __LINE__, ##__VA_ARGS__)
 #else
 #define ACT_PRINTF(format, ...)
 #endif
@@ -23,7 +23,6 @@ typedef struct
     uint8_t used;
     uint8_t nesting_cnt;
     pthread_mutex_t mutex;  /* protect actor data. */
-
     list_t list;            /* protect by s_actor_mutex */
 } actor_t;
 

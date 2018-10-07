@@ -1,5 +1,7 @@
 #include "stm_os.h"
 #include "fcmd.h"
+#include "nd.h"
+
 #include <pthread.h>
 #include <unistd.h>
 #include <readline/readline.h>
@@ -10,26 +12,53 @@
 #include "app_task.h"
 
 #define MEM_POOL_SIZE   1024*40
-uint8_t mem_pool[MEM_POOL_SIZE];
-
-pthread_t dispatch_thread_id;
+static uint8_t mem_pool[MEM_POOL_SIZE];
+pthread_t scheduler_thread_id;
 pthread_t timer_thread_id;
-pthread_t scr_thread_id;
+pthread_t device_thread_id;
+actor_t *director_act;
 
-actor_t *app_act;
-actor_t *driver_act;
-
-void *dispatch_thread(void *arg)
+// director stm
+static uint8_t director_idle(stm_t *me, msg_t *e);
+uint8_t director_init(stm_t *me, msg_t *e)
 {
-    app_act = actor_add((stm_func_t)app_init, 10, 1);
-    driver_act = actor_add((stm_func_t)driver_init, 10, 1);
-	
+    return STM_TRAN(director_idle);
+}
+static uint8_t director_idle(stm_t *me, msg_t *e)
+{
+    uint8_t r = STM_RET_HANDLED;
+
+    switch (e->sig)
+    {
+    case STM_EVT_INIT:
+        break;
+
+    case STM_EVT_ENTRY:
+        break;
+
+    case STM_EVT_EXIT:
+        break;
+
+    default:
+        r = STM_FATHER(hsm_top);
+        break;
+    }
+
+    return r;
+}
+
+// actor scheduler
+void *scheduler_thread(void *arg)
+{
+    // must add director!
+    director_act = actor_add(director_init, 10, 1);
     for (;;)
     {
         actor_dispatch();
     }
 }
 
+// timer event
 void *timer_thread(void *arg)
 {
     for (;;)
@@ -40,9 +69,10 @@ void *timer_thread(void *arg)
     }
 }
 
-void *scr_thread(void *arg)
+// screen output & keypad input
+void *device_thread(void *arg)
 {
-    initscr();      /* initialize the curses library */
+    initscr();
     if (has_colors())
     {
         start_color();
@@ -54,61 +84,42 @@ void *scr_thread(void *arg)
         init_pair(6, COLOR_MAGENTA, COLOR_BLACK);
         init_pair(7, COLOR_WHITE,   COLOR_BLACK);
     }
+    cbreak();
+    noecho();
+    keypad(stdscr, TRUE);
+    clear();
     
     for (;;)
     {
         int c = getch();     /* refresh, accept single keystroke of input */
 
-        /* process the command keystroke */
-        if (c == 'q' || c == 'Q')
+        switch(c)
         {
-            mvprintw(10,0,"Shelling out...");
-            def_prog_mode();           /* save current tty modes */
-            endwin();                  /* restore original tty modes */
-            system("bash");              /* run shell */
-            mvprintw(10,0,"returned.      ");     /* prepare return message */
-            refresh();                 /* restore save modes, repaint screen */
+            case KEY_UP:
+            break;
+
+            case KEY_DOWN:
+            break;
+
+            case KEY_LEFT:
+            break;
+
+            case KEY_RIGHT:
+            break;
         }
     }
 }
 int main(int argc, char *argv[])
 {
-	char* input, shell_prompt[100];
-	int res;
-
-    // Configure readline to auto-complete paths when the tab key is hit.
-    // rl_bind_key('\t', rl_complete);
-
-	// os init
     os_mem_init(mem_pool, mem_pool + MEM_POOL_SIZE - 1);
-	
-	// thread
-    pthread_create(&dispatch_thread_id, NULL, dispatch_thread, NULL);
+    nd_init(50791);
+    pthread_create(&scheduler_thread_id, NULL, scheduler_thread, NULL);
     pthread_create(&timer_thread_id, NULL, timer_thread, NULL);
-    pthread_create(&scr_thread_id, NULL, scr_thread, NULL);
+    // pthread_create(&device_thread_id, NULL, device_thread, NULL);
 
     for (;;)
     {
         sleep(5000);
-        // // Create prompt string from user name and current working directory.
-        // snprintf(shell_prompt, sizeof(shell_prompt), "%s:%s $ ", getenv("USER"), getcwd(NULL, 1024));
-  
-        // // Display prompt and read input (n.b. input must be freed after use)...
-        // input = readline(shell_prompt);
-  
-        // // Check for EOF.
-        // if (!input)
-        //     break;
-  
-        // // Add input to history.
-        // add_history(input);
-  
-        // // Do stuff...
-		// fcmd_exec(input);
-  
-        // // Free input.
-        // free(input);
-		// input = NULL;
     }
 
     return 0;

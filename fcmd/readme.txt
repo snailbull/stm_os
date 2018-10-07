@@ -1,13 +1,15 @@
 # fcmd
 fcmd is a simple c-function unit debug library.
-use it uart or console to test your unit.
+use it uart, udp or console to test your unit.
 
 # how to use
 
 # history:
 0.03	add va_arg param support，eg:int printf(const char *fmt, ...)
+
 0.02	add string param support, eg:disp(50,-60, "ADC:  mV", 10, "89"), 
-	add mem cmd.
+		add mem cmd.
+
 0.01	test ok，only support int32_t param.
 
 # note

@@ -26,7 +26,7 @@ static uint8_t app_task(stm_t *me, msg_t *e)
     switch (e->sig)
     {
     case FLUSH_SIG:
-        APP_PRINTF("app:FLUSH_SIG");
+        mvaddch(1,5,'\\');
         break;
 
     case STM_EVT_INIT:

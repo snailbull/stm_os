@@ -7,8 +7,8 @@
 #include <stdlib.h>
 #include <ctype.h>
 
-#define PRINTF  printf	//如果是内核打印，可以改成printk
-#define PUTC	putchar
+#define PRINTF  nd_printf
+#define PUTC	fcmd_putc
 
 #ifdef __cplusplus
 extern "C" {
