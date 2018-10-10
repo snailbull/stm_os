@@ -8,50 +8,19 @@
 #include <readline/history.h>
 #include <curses.h>
 
-#include "driver_task.h"
-#include "app_task.h"
+#include "tetris.h"
 
 #define MEM_POOL_SIZE   1024*40
 static uint8_t mem_pool[MEM_POOL_SIZE];
 pthread_t scheduler_thread_id;
 pthread_t timer_thread_id;
 pthread_t device_thread_id;
-actor_t *director_act;
-
-// director stm
-static uint8_t director_idle(stm_t *me, msg_t *e);
-uint8_t director_init(stm_t *me, msg_t *e)
-{
-    return STM_TRAN(director_idle);
-}
-static uint8_t director_idle(stm_t *me, msg_t *e)
-{
-    uint8_t r = STM_RET_HANDLED;
-
-    switch (e->sig)
-    {
-    case STM_EVT_INIT:
-        break;
-
-    case STM_EVT_ENTRY:
-        break;
-
-    case STM_EVT_EXIT:
-        break;
-
-    default:
-        r = STM_FATHER(hsm_top);
-        break;
-    }
-
-    return r;
-}
 
 // actor scheduler
 void *scheduler_thread(void *arg)
 {
     // must add director!
-    director_act = actor_add(director_init, 10, 1);
+    director_act = actor_create(director_init, 10, 1);
     for (;;)
     {
         actor_dispatch();
@@ -92,7 +61,6 @@ void *device_thread(void *arg)
     for (;;)
     {
         int c = getch();     /* refresh, accept single keystroke of input */
-
         switch(c)
         {
             case KEY_UP:
@@ -115,7 +83,7 @@ int main(int argc, char *argv[])
     nd_init(50791);
     pthread_create(&scheduler_thread_id, NULL, scheduler_thread, NULL);
     pthread_create(&timer_thread_id, NULL, timer_thread, NULL);
-    // pthread_create(&device_thread_id, NULL, device_thread, NULL);
+    pthread_create(&device_thread_id, NULL, device_thread, NULL);
 
     for (;;)
     {

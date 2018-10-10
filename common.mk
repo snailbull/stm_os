@@ -29,18 +29,20 @@ PHONY += $(subdir-y)
 
 __build : $(subdir-y) built-in.o
 
-# recursive subdir, than execute Makefile.build
+# recursive subdir, than execute common.mk
 $(subdir-y):
-	make -C $@ -f $(TOPDIR)/Makefile.build
+	make -C $@ -f $(TOPDIR)/common.mk
 
 # link & genarate current dir's built-in.o
 built-in.o : $(cur_objs) $(subdir_objs)
-	$(LD) -r -o $@ $^
+	@echo LD $^
+	@$(LD) -r -o $@ $^
 
 dep_file = .$@.d
 
 # compile every *.c files
 %.o : %.c
-	$(CC) $(CFLAGS) -Wp,-MD,$(dep_file) -c -o $@ $<
+	@echo CC $<
+	@$(CC) $(CFLAGS) -Wp,-MD,$(dep_file) -c -o $@ $<
 
 .PHONY : $(PHONY)

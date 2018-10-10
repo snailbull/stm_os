@@ -32,7 +32,7 @@ enum
     SEND_TO_BACK,
 };
 
-actor_t *actor_add(stm_func_t init, uint8_t size, uint8_t opt);
+actor_t *actor_create(stm_func_t init, uint8_t size, uint8_t opt);
 void actor_del(actor_t *act);
 uint8_t actor_post_message(actor_t *act, int sig, void *para, uint8_t opt);
 uint8_t actor_send_message(actor_t *act, int sig, void *para);

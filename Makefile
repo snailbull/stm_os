@@ -18,13 +18,12 @@ TOPDIR  := $(shell pwd)
 
 ################################################################################
 # user config
-TARGET := stm_test
-T_dis := $(TARGET).dis
+TARGET := app.elf
 
 CFLAGS :=  -O2 -g -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast
 CFLAGS += -I. \
 	-I$(TOPDIR)/fcmd	\
-	-I$(TOPDIR)/app	\
+	-I$(TOPDIR)/tetris	\
 	-I$(TOPDIR)/stm_os
 
 LDFLAGS := \
@@ -36,7 +35,7 @@ LDFLAGS := \
 obj-y += \
 	fcmd/			\
 	stm_os/			\
-	app/
+	tetris/
 
 
 ################################################################################
@@ -44,9 +43,8 @@ obj-y += \
 export AS LD CC CPP AR NM STRIP OBJCOPY OBJDUMP TOPDIR CFLAGS LDFLAGS
 
 all : 
-	make -f $(TOPDIR)/Makefile.build
+	make -f $(TOPDIR)/common.mk
 	$(CC) $(LDFLAGS) -o $(TARGET) built-in.o
-	$(OBJDUMP) -D $(TARGET) > $(T_dis)
 
 clean:
 	rm -f $(shell find -name "*.o")

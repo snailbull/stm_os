@@ -4,7 +4,7 @@ It is a portable, cross-compilable, with a compatible API.
 Use this to design ncurses game!
 
 # framework
-![image](https://github.com/snailbull/stm_os/arch.png)
+![image](https://github.com/snailbull/stm_os/tree/dev/arch.png)
 
 # how to use
 

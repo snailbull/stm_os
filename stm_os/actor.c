@@ -18,7 +18,7 @@ void actor_init(void)
     pthread_mutex_unlock(&s_actor_mutex);
 }
 
-actor_t *actor_add(stm_func_t init, uint8_t size, uint8_t opt)
+actor_t *actor_create(stm_func_t init, uint8_t size, uint8_t opt)
 {
     actor_t *act;
 	msg_t evt;

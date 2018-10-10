@@ -1,0 +1,1 @@
+obj-y += main.o block_actor.o field_actor.o score_actor.o stage_actor.o store_actor.o tetris.o
