@@ -27,11 +27,11 @@ static uint8_t director_idle(stm_t *me, msg_t *e)
         break;
 
     case STM_EVT_ENTRY:
-        stage_act.act = actor_create(stage_init, 10,0);
-        field_act.act = actor_create(field_init, 10,0);
-        block_act.act = actor_create(block_init, 10,0);
-        store_act.act = actor_create(store_init, 10,0);
-        score_act.act = actor_create(score_init, 10,0);
+        stage_act.act = actor_create(stage_init, 10,0); // the whole game scene
+        field_act.act = actor_create(field_init, 10,0); // the area to place block
+        block_act.act = actor_create(block_init, 10,0); // the falling block
+        store_act.act = actor_create(store_init, 10,0); // the block in store
+        score_act.act = actor_create(score_init, 10,0); // the game score
         break;
 
     case STM_EVT_EXIT:

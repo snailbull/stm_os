@@ -3,7 +3,7 @@
 
 int nd_init(int port);
 int nd_exit(void);
-void nd_send(char *s, int len);
+int nd_send(char *s, int len);
 int nd_printf(const char *format, ...);
 
 #endif

@@ -77,13 +77,14 @@ void *device_thread(void *arg)
         }
     }
 }
+
 int main(int argc, char *argv[])
 {
     os_mem_init(mem_pool, mem_pool + MEM_POOL_SIZE - 1);
     nd_init(50791);
     pthread_create(&scheduler_thread_id, NULL, scheduler_thread, NULL);
     pthread_create(&timer_thread_id, NULL, timer_thread, NULL);
-    pthread_create(&device_thread_id, NULL, device_thread, NULL);
+    //pthread_create(&device_thread_id, NULL, device_thread, NULL);
 
     for (;;)
     {

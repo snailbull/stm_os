@@ -1,13 +1,3 @@
-<tetris>
-<field>
-
-</field>
-
-<block>
-<type>0</type>
-<direction></direction>
-
-</block>
 <stage>
 ****************************************
 *  Tetris Game                         *
@@ -35,4 +25,3 @@
 *+--------------------+                *
 ****************************************
 </stage>
-</tetris>

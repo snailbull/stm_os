@@ -3,12 +3,10 @@
 
 #include "stm_os.h"
 
-
 enum
 {
     KEY_SIG = STM_EVT_USER,
 };
-
 
 typedef struct
 {
@@ -58,7 +56,6 @@ typedef struct
 }stage_act_t;
 
 extern actor_t *director_act;
-
 
 uint8_t director_init(stm_t *me, msg_t *e);
 uint8_t block_init(stm_t *me, msg_t *e);
