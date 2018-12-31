@@ -7,12 +7,15 @@ Use this to design ncurses game!
 ![](./doc/arch.png)
 
 # how to use
-make
-./app.elf
-use keypad to play tetris.
->	      up
+
+	make
+	./app.elf
+	use keypad to play tetris.
+>
+	      up
 	left down right
 	p(pause)    q(quit)    space(hard drop)
+
 
 # example
 tetris game is a example for stm test.
