@@ -39,6 +39,7 @@ void *timer_thread(void *arg)
 }
 
 // screen output & keypad input
+// http://www.tldp.org/HOWTO/NCURSES-Programming-HOWTO/
 void *device_thread(void *arg)
 {
     initscr();
@@ -63,17 +64,33 @@ void *device_thread(void *arg)
         int c = getch();     /* refresh, accept single keystroke of input */
         switch(c)
         {
-            case KEY_UP:
+        case KEY_UP:
+            nd_printf("KEY_UP\n");
             break;
 
-            case KEY_DOWN:
+        case KEY_DOWN:
+            nd_printf("KEY_DOWN\n");
             break;
 
-            case KEY_LEFT:
+        case KEY_LEFT:
+            nd_printf("KEY_LEFT\n");
             break;
 
-            case KEY_RIGHT:
+        case KEY_RIGHT:
+            nd_printf("KEY_RIGHT\n");
             break;
+
+        // case KEY_SPACE:
+        //     nd_printf("KEY_SPACE\n");
+        //     break;
+
+        // case KEY_P:
+        //     nd_printf("KEY_SPACE\n");
+        //     break;
+
+        // case KEY_Q:
+        //     nd_printf("KEY_SPACE\n");
+        //     break;
         }
     }
 }
@@ -84,7 +101,7 @@ int main(int argc, char *argv[])
     nd_init(50791);
     pthread_create(&scheduler_thread_id, NULL, scheduler_thread, NULL);
     pthread_create(&timer_thread_id, NULL, timer_thread, NULL);
-    //pthread_create(&device_thread_id, NULL, device_thread, NULL);
+    pthread_create(&device_thread_id, NULL, device_thread, NULL);
 
     for (;;)
     {

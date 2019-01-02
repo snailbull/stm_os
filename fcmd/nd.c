@@ -55,7 +55,7 @@ void *nd_thread(void *arg)
                 if ((rb >= 3) && (nd_recv_buf[0] == '#') && (nd_recv_buf[rb-1] == '@'))
                 {
                     // send to this socket, remote_addr:00000000, remote_port:36895
-                    printf("remote_addr:%08x, remote_port:%d\n", nd_remote_addr.sin_addr.s_addr, nd_remote_addr.sin_port);
+                    //printf("remote_addr:%08x, remote_port:%d\n", nd_remote_addr.sin_addr.s_addr, nd_remote_addr.sin_port);
                     nd_recv_buf[rb-1] = 0;
                     fcmd_exec(&nd_recv_buf[1]);
                 }
