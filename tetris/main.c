@@ -80,17 +80,6 @@ void *device_thread(void *arg)
             nd_printf("KEY_RIGHT\n");
             break;
 
-        // case KEY_SPACE:
-        //     nd_printf("KEY_SPACE\n");
-        //     break;
-
-        // case KEY_P:
-        //     nd_printf("KEY_SPACE\n");
-        //     break;
-
-        // case KEY_Q:
-        //     nd_printf("KEY_SPACE\n");
-        //     break;
         }
     }
 }

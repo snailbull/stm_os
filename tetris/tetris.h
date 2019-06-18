@@ -18,7 +18,7 @@ typedef struct
 
 typedef struct
 {
-    uint8_t type;       // block type:T L | Z O
+    uint8_t type;       // block type:T L L` | Z Z` O
     uint8_t direction;  // rotate diretion
     uint8_t b[4][2];    // 1block have 4 piece(x,y)
 }block_t;

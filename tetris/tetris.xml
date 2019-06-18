@@ -1,5 +1,5 @@
-<stage>
-stage(0,0),40x25
+<tetris>
+<stage x="0" y="0" width="40" height="25">
 ****************************************
 *  Tetris Game                         *
 *+--------------------+                *
@@ -27,8 +27,7 @@ stage(0,0),40x25
 ****************************************
 </stage>
 
-<coordinate>
-(0,0)
+<coordinate x="0" y="0">
 ---------------->x
 |
 |
@@ -38,16 +37,13 @@ stage(0,0),40x25
 v  y
 </coordinate>
 
-<field>
-field(2,3),10x20
+<field x="2" y="3" width="10" height="20">
 </field>
 
-<store>
-store1(29,3), store2(29,8)
+<store x1="29" y1="3" x2="29" y2="8">
 </store>
 
-<block>
-block origin(0,0), block spin center(1,1), 4x4
+<block x="0" y="0" rotate_x="1" rotate_y="1" width="4" height="4">
 .O..  .O..  ....  .O..
 OOO.  OO..  OOO.  .OO.
 ....  .O..  .O..  .O..
@@ -84,6 +80,6 @@ OO..
 ....
 </block>
 
-<score>
-score(25,18), 12x3
+<score x="2"5 y="18" width="12" height="3">
 </score>
+</tetris>
