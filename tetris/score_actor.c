@@ -2,19 +2,19 @@
 #include "tetris.h"
 
 
-static uint8_t score_idle(stm_t *me, msg_t *e);
+static int score_idle(stm_t *me, evt_t *e);
 
 
-uint8_t score_init(stm_t *me, msg_t *e)
+int score_init(stm_t *me, evt_t *e)
 {
     return STM_TRAN(score_idle);
 }
 
-static uint8_t score_idle(stm_t *me, msg_t *e)
+static int score_idle(stm_t *me, evt_t *e)
 {
-    uint8_t r = STM_RET_HANDLED;
+    int r = STM_RET_HANDLED;
 
-    switch (e->sig)
+    switch (e->evt)
     {
 
     case STM_EVT_INIT:

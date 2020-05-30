@@ -2,18 +2,18 @@
 #include "tetris.h"
 
 
-static uint8_t stage_idle(stm_t *me, msg_t *e);
+static int stage_idle(stm_t *me, evt_t *e);
 
-uint8_t stage_init(stm_t *me, msg_t *e)
+int stage_init(stm_t *me, evt_t *e)
 {
     return STM_TRAN(stage_idle);
 }
 
-static uint8_t stage_idle(stm_t *me, msg_t *e)
+static int stage_idle(stm_t *me, evt_t *e)
 {
-    uint8_t r = STM_RET_HANDLED;
+    int r = STM_RET_HANDLED;
 
-    switch (e->sig)
+    switch (e->evt)
     {
     case STM_EVT_INIT:
         break;

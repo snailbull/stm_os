@@ -13,34 +13,31 @@ typedef signed   long      int32_t;
 typedef unsigned long      uint32_t;
 typedef unsigned long long uint64_t;
 #endif
-typedef unsigned char evt_t;
 
 /*
  * error code
  */
-enum
-{
-    ERR_SUCCESS    = 0,
-    ERR_NO_MEMORY,
-    ERR_NULL_POINTER,
-    ERR_NULL_OBJECT,
-    ERR_BLOCK_SIZE_ERROR,
-    ERR_INVALID_ALIGN,
-    ERR_QUEUE_FULLED,
-    ERR_ADD_FAILED,
-    ERR_DELETE_FAILED,
-    ERR_EXISTED_TIMER,
-    ERR_NESTING_FULLED,
+enum {
+	ERR_SUCCESS    = 0,
+	ERR_NO_MEMORY,
+	ERR_NULL_POINTER,
+	ERR_NULL_OBJECT,
+	ERR_BLOCK_SIZE_ERROR,
+	ERR_INVALID_ALIGN,
+	ERR_QUEUE_FULLED,
+	ERR_ADD_FAILED,
+	ERR_DELETE_FAILED,
+	ERR_EXISTED_TIMER,
+	ERR_NESTING_FULLED,
 };
 
 
 /*
  * Double-link list
  */
-typedef struct list_node
-{
-    struct list_node    *next;
-    struct list_node    *prev;
+typedef struct list_node {
+	struct list_node    *next;
+	struct list_node    *prev;
 } list_t;
 
 #define list_entry(node, type, member)    ( (type *)( ( uint8_t *)(node) - (uint32_t)(&((type *)0)->member) ) )

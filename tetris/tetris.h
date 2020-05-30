@@ -57,11 +57,11 @@ typedef struct
 
 extern actor_t *director_act;
 
-uint8_t director_init(stm_t *me, msg_t *e);
-uint8_t block_init(stm_t *me, msg_t *e);
-uint8_t field_init(stm_t *me, msg_t *e);
-uint8_t score_init(stm_t *me, msg_t *e);
-uint8_t stage_init(stm_t *me, msg_t *e);
-uint8_t store_init(stm_t *me, msg_t *e);
+int director_init(stm_t *me, evt_t *e);
+int block_init(stm_t *me, evt_t *e);
+int field_init(stm_t *me, evt_t *e);
+int score_init(stm_t *me, evt_t *e);
+int stage_init(stm_t *me, evt_t *e);
+int store_init(stm_t *me, evt_t *e);
 
 #endif
