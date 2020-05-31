@@ -38,9 +38,22 @@ void *timer_thread(void *arg)
     }
 }
 
-// screen output & keypad input
-// http://www.tldp.org/HOWTO/NCURSES-Programming-HOWTO/
-void *device_thread(void *arg)
+/*
+screen output & keypad input
+http://www.tldp.org/HOWTO/NCURSES-Programming-HOWTO/
+  (y,x)
+	------------------> x
+	|
+	|
+	|      stdscr:WINDOW,WINDOW
+	|
+	|
+	v
+	y
+
+*/
+extern void test_curses(void);
+void *ui_thread(void *arg)
 {
     initscr();
     if (has_colors())
@@ -54,43 +67,27 @@ void *device_thread(void *arg)
         init_pair(6, COLOR_MAGENTA, COLOR_BLACK);
         init_pair(7, COLOR_WHITE,   COLOR_BLACK);
     }
-    cbreak();
+    cbreak();	// ctrl+c = getch()
+	// raw();		// ^C = getch()
     noecho();
     keypad(stdscr, TRUE);
     clear();
-    
+	// test_curses();
     for (;;)
     {
-        int c = getch();     /* refresh, accept single keystroke of input */
-        switch(c)
-        {
-        case KEY_UP:
-            nd_printf("KEY_UP\n");
-            break;
-
-        case KEY_DOWN:
-            nd_printf("KEY_DOWN\n");
-            break;
-
-        case KEY_LEFT:
-            nd_printf("KEY_LEFT\n");
-            break;
-
-        case KEY_RIGHT:
-            nd_printf("KEY_RIGHT\n");
-            break;
-
-        }
+        sleep(1);
     }
+
+	endwin();
 }
 
 int main(int argc, char *argv[])
 {
     os_mem_init(mem_pool, mem_pool + MEM_POOL_SIZE - 1);
-    nd_init(50791);
+    // nd_init(50791);
     pthread_create(&scheduler_thread_id, NULL, scheduler_thread, NULL);
     pthread_create(&timer_thread_id, NULL, timer_thread, NULL);
-    pthread_create(&device_thread_id, NULL, device_thread, NULL);
+    pthread_create(&device_thread_id, NULL, ui_thread, NULL);
 
     for (;;)
     {

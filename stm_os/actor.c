@@ -49,12 +49,12 @@ actor_t *actor_create(stm_func_t init, uint8_t size, uint8_t opt)
 	act->head = 0;
 	act->tail = 0;
 	act->used = 0;
+	list_insert(&s_actor_head, &act->list);
 	if (opt == 0) {
 		fsm_ctor(&act->me, init);
 	} else {
 		hsm_ctor(&act->me, init);
 	}
-	list_insert(&s_actor_head, &act->list);
 	return act;
 }
 
@@ -170,8 +170,7 @@ void actor_dispatch(void)
 
 			pthread_mutex_lock(&t->mutex);
 			if (t->used > 0) {
-				/* pick a event from queue head. */
-				t->used--;
+				t->used--;	/* pick a event from queue head. */
 
 				pthread_mutex_lock(&s_actor_mutex);
 				s_msg_total--;

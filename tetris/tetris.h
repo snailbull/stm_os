@@ -5,7 +5,7 @@
 
 enum
 {
-    KEY_SIG = STM_SIG_USER,
+    KEYBOARD_SIG = STM_SIG_USER,
 };
 
 typedef struct
@@ -26,7 +26,7 @@ typedef struct
 typedef struct
 {
     actor_t *act;
-    int x,y;
+    int x,y;			// block origin
     block_t b;
     uint8_t speed;
 }block_act_t;
