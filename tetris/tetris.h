@@ -5,7 +5,7 @@
 
 enum
 {
-    KEY_SIG = STM_EVT_USER,
+    KEY_SIG = STM_SIG_USER,
 };
 
 typedef struct

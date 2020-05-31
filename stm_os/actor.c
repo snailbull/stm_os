@@ -79,7 +79,7 @@ void actor_del(actor_t *act)
  *
  * Note(s) it might be called in interrupt. MESSAGE WILL PROCESSING ASYNCHRONOUS.
  */
-uint8_t actor_post_message(actor_t *act, int evt, void *para, uint8_t opt)
+uint8_t actor_post_message(actor_t *act, int sig, void *para, uint8_t opt)
 {
 	pthread_mutex_lock(&act->mutex);
 	if (act->used >= act->size) {
@@ -88,7 +88,7 @@ uint8_t actor_post_message(actor_t *act, int evt, void *para, uint8_t opt)
 	}
 
 	if (opt == SEND_TO_BACK) {
-		act->queue[act->tail].evt = evt;
+		act->queue[act->tail].sig = sig;
 		act->queue[act->tail].para = para;
 		act->tail++;
 		if (act->tail >= act->size) {
@@ -99,7 +99,7 @@ uint8_t actor_post_message(actor_t *act, int evt, void *para, uint8_t opt)
 			act->head = act->size;
 		}
 		act->head--;
-		act->queue[act->head].evt = evt;
+		act->queue[act->head].sig = sig;
 		act->queue[act->head].para = para;
 	}
 	act->used++;
@@ -117,14 +117,14 @@ uint8_t actor_post_message(actor_t *act, int evt, void *para, uint8_t opt)
  * Send event to specify active object
  *
  * @act   active object
- * @evt   signal num
+ * @sig   signal num
  * @para  signal param
  *
  * Note(s) it might be called in interrupt. MESSAGE WILL PROCESSING SYNCHRONOUS.
  */
-uint8_t actor_send_message(actor_t *act, int evt, void *para)
+uint8_t actor_send_message(actor_t *act, int sig, void *para)
 {
-	evt_t e = {evt, para};
+	evt_t e = {sig, para};
 
 	pthread_mutex_lock(&act->mutex);
 	act->nesting_cnt++;	/* ++ and -- always in pairs */
@@ -177,7 +177,7 @@ void actor_dispatch(void)
 				s_msg_total--;
 				pthread_mutex_unlock(&s_actor_mutex);
 
-				e.evt = t->queue[t->head].evt;
+				e.sig = t->queue[t->head].sig;
 				e.para = t->queue[t->head].para;
 				t->head++;
 				if (t->head >= t->size) {

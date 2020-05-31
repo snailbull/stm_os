@@ -21,12 +21,12 @@ static int director_idle(stm_t *me, evt_t *e)
 {
     int r = STM_RET_HANDLED;
 
-    switch (e->evt)
+    switch (e->sig)
     {
-    case STM_EVT_INIT:
+    case STM_SIG_INIT:
         break;
 
-    case STM_EVT_ENTRY:
+    case STM_SIG_ENTRY:
         memset(&stage_act, 0, sizeof(stage_act));
         memset(&field_act, 0, sizeof(field_act));
         memset(&block_act, 0, sizeof(block_act));
@@ -56,7 +56,7 @@ static int director_idle(stm_t *me, evt_t *e)
         score_act.act = actor_create(score_init, 10,0); // the game score
         break;
 
-    case STM_EVT_EXIT:
+    case STM_SIG_EXIT:
         break;
 
     default:

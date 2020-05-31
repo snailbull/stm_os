@@ -6,14 +6,14 @@ static list_t cbtimer_head = {&cbtimer_head, &cbtimer_head};
 /*
  * Add a evt timer
  * @me		state-machine
- * @evt		evt wanto send
+ * @sig		sig wanto send
  * @para	pointer para wanto send
  * @ms		timeout
  * @flag	oneshot&repeat,start&stop
  *
  * return
  */
-int evtimer_add(stm_t *me, int evt, void *para, int ms, int flag)
+int evtimer_add(stm_t *me, int sig, void *para, int ms, int flag)
 {
 	evtimer_t *t;
 	list_t *head;
@@ -24,7 +24,7 @@ int evtimer_add(stm_t *me, int evt, void *para, int ms, int flag)
 	while (iter != head) {
 		t = list_entry(iter, evtimer_t, list);
 
-		if ((t->me == me) && (t->e.evt == evt)) {
+		if ((t->me == me) && (t->e.sig == sig)) {
 			return ERR_EXISTED_TIMER;
 		}
 
@@ -36,7 +36,7 @@ int evtimer_add(stm_t *me, int evt, void *para, int ms, int flag)
 		return ERR_NO_MEMORY;
 	}
 	t->me      = me;
-	t->e.evt   = evt;
+	t->e.sig   = sig;
 	t->e.para  = para;
 	t->timeout = ms;
 	t->flag    = flag;
@@ -51,7 +51,7 @@ int evtimer_add(stm_t *me, int evt, void *para, int ms, int flag)
 	return ERR_SUCCESS;
 }
 
-int evtimer_del(stm_t *me, int evt)
+int evtimer_del(stm_t *me, int sig)
 {
 	evtimer_t *t;
 	list_t *head;
@@ -63,7 +63,7 @@ int evtimer_del(stm_t *me, int evt)
 	while (iter != head) {
 		t = list_entry(iter, evtimer_t, list);
 
-		if ((t->me == me) && (t->e.evt == evt)) {
+		if ((t->me == me) && (t->e.sig == sig)) {
 			list_delete(&t->list);
 			if (t->e.para) {
 				os_free(t->e.para);
@@ -82,10 +82,10 @@ int evtimer_del(stm_t *me, int evt)
 
 /*
  * @me		state-machine
- * @e		evt
+ * @sig		sig wanto send
  * @flag	set flag:start,stop,one_shot,repeat
  */
-int evtimer_set(stm_t *me, int evt, int flag)
+int evtimer_set(stm_t *me, int sig, int flag)
 {
 	evtimer_t *t;
 	list_t *head;
@@ -96,7 +96,7 @@ int evtimer_set(stm_t *me, int evt, int flag)
 	while (iter != head) {
 		t = list_entry (iter, evtimer_t, list);
 
-		if ((t->me == me) && (t->e.evt == evt)) {
+		if ((t->me == me) && (t->e.sig == sig)) {
 			t->flag = flag;
 			return ERR_SUCCESS;
 		}
@@ -123,7 +123,7 @@ void evtimer_update(int elapse_ms)
 			if (t->timeout > elapse_ms) {
 				t->timeout -= elapse_ms;
 			} else {
-				actor_post_message((actor_t *)(t->me), t->e.evt, t->e.para, SEND_TO_BACK);
+				actor_post_message((actor_t *)(t->me), t->e.sig, t->e.para, SEND_TO_BACK);
 				if (t->flag & TIMER_FLAG_REPEAT) {
 					t->timeout = t->reload_timeout;
 				} else {

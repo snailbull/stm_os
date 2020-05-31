@@ -2,7 +2,7 @@
 #define _STM_H_
 
 typedef struct evt_t {
-	int evt;
+	int sig;
 	void *para;
 } evt_t;
 
@@ -18,7 +18,7 @@ struct stm_vtbl_t {
 struct stm_t {
 	stm_vtbl_t *vptr;
 	stm_func_t state;
-	stm_func_t next;
+	stm_func_t temp;
 };
 
 enum {
@@ -31,16 +31,16 @@ enum {
 };
 
 enum {
-	STM_EVT_EMPTY = 0,			/* just trig to father state. */
-	STM_EVT_INIT,
-	STM_EVT_ENTRY,
-	STM_EVT_EXIT,
-	STM_EVT_TICK,
-	STM_EVT_USER = 5
+	STM_SIG_EMPTY = 0,			/* just trig to father state. */
+	STM_SIG_INIT,
+	STM_SIG_ENTRY,
+	STM_SIG_EXIT,
+	STM_SIG_TICK,
+	STM_SIG_USER = 5
 };
 
-#define STM_TRAN(state)         (me->next = state,  STM_RET_TRAN)
-#define STM_FATHER(father)      (me->next = father, STM_RET_FATHER)
+#define STM_TRAN(state)         (me->temp = state,  STM_RET_TRAN)
+#define STM_FATHER(father)      (me->temp = father, STM_RET_FATHER)
 
 void    fsm_init    (stm_t *me, evt_t *e);
 void    fsm_dispatch(stm_t *me, evt_t *e);
