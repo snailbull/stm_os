@@ -1,24 +1,5 @@
 #include "stm_os.h"
 
-/**
- * log
- */
-//#define MEM_DEBUG_ON
-#ifdef MEM_DEBUG_ON
-#define MEM_DEBUG(fmt,...)    printf("[mem.c,%d]:" fmt "\r\n", __LINE__,##__VA_ARGS__)
-#define MEM_ASSERT(e)				\
-	if (!(e))						\
-	{								\
-		volatile int dummy = 0;	\
-		/* CPU_SR_Save(); */		\
-		MEM_DEBUG("%s:(%s) assert failed!",  __FUNCTION__,#e);\
-		while (dummy == 0);			\
-	}
-#else
-#define MEM_DEBUG(fmt, ...)
-#define MEM_ASSERT(e)
-#endif
-
 /*
  * memory config
  */
@@ -68,7 +49,9 @@ static void plug_holes(struct heap_mem *mem)
 
 	/* plug hole forward */
 	nmem = (struct heap_mem *)&heap_ptr[mem->next];
-	if (mem != nmem && nmem->used == 0 && (uint8_t *)nmem != (uint8_t *)heap_end) {
+	if (mem != nmem &&
+	        nmem->used == 0 &&
+	        (uint8_t *)nmem != (uint8_t *)heap_end) {
 		/* if mem->next is unused and not end of heap_ptr,
 		 * combine mem and mem->next
 		 */
@@ -106,18 +89,21 @@ void os_mem_init(void *begin_addr, void *end_addr)
 	/*RT_DEBUG_NOT_IN_INTERRUPT;*/
 
 	/* alignment addr */
-	if ((end_align > (2 * MEM_BLOCK_SIZE)) && ((end_align - 2 * MEM_BLOCK_SIZE) >= begin_align)) {
+	if ((end_align > (2 * MEM_BLOCK_SIZE)) &&
+	        ((end_align - 2 * MEM_BLOCK_SIZE) >= begin_align)) {
 		/* calculate the aligned memory size */
 		mem_size_aligned = end_align - begin_align - 2 * MEM_BLOCK_SIZE;
 	} else {
-		MEM_DEBUG("mem init, error begin address 0x%x, and end address 0x%x", (uint32_t)begin_addr, (uint32_t)end_addr);
+		MEM_DEBUG("mem init, error begin address 0x%x, and end address 0x%x",
+		          (uint32_t)begin_addr, (uint32_t)end_addr);
 		return;
 	}
 
 	/* point to begin address of heap */
 	heap_ptr = (uint8_t *)begin_align;
 
-	MEM_DEBUG("mem init, heap begin address 0x%x, size %d", (uint32_t)heap_ptr, mem_size_aligned);
+	MEM_DEBUG("mem init, heap begin address 0x%x, size %d",
+	          (uint32_t)heap_ptr, mem_size_aligned);
 
 	/* initialize the start of the heap */
 	mem        = (struct heap_mem *)heap_ptr;
@@ -151,7 +137,7 @@ void os_mem_init(void *begin_addr, void *end_addr)
  *
  * @return pointer to allocated memory or NULL if no free memory was found.
  */
-void *os_malloc(int size)
+void *os_malloc(uint32_t size)
 {
 	uint32_t ptr, ptr2;
 	struct heap_mem *mem, *mem2;
@@ -285,9 +271,9 @@ void *os_malloc(int size)
  *
  * @return the changed memory block address
  */
-void *os_realloc(void *rmem, int newsize)
+void *os_realloc(void *rmem, uint32_t newsize)
 {
-	int size;
+	uint32_t size;
 	uint32_t ptr, ptr2;
 	struct heap_mem *mem, *mem2;
 	void *nmem;
@@ -310,7 +296,8 @@ void *os_realloc(void *rmem, int newsize)
 	sem_wait(&heap_sem);
 #endif
 
-	if ((uint8_t *)rmem < (uint8_t *)heap_ptr || (uint8_t *)rmem >= (uint8_t *)heap_end) {
+	if ((uint8_t *)rmem < (uint8_t *)heap_ptr ||
+	        (uint8_t *)rmem >= (uint8_t *)heap_end) {
 #ifdef MEM_SAFETY
 		/* illegal memory */
 		sem_post(&heap_sem);
@@ -380,7 +367,7 @@ void *os_realloc(void *rmem, int newsize)
  *
  * @return pointer to allocated memory / NULL pointer if there is an error
  */
-void *os_calloc(int count, int size)
+void *os_calloc(uint32_t count, uint32_t size)
 {
 	void *p;
 

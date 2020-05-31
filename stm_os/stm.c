@@ -1,4 +1,5 @@
-#include "stm_os.h"
+#include <stdio.h>
+#include "stm.h"
 
 
 #define STM_MAX_NEST_DEPTH      8
@@ -39,17 +40,13 @@ static evt_t s_stm_global_evt[4] = {
 void fsm_init (stm_t *me, evt_t *e)
 {
 	int ret;
-	if (me->temp == 0) {
-		STM_ASSERT (0);
-	}
+	STM_ASSERT (me->temp != 0);
 
 	ret = (*me->temp) (me, e);          /* do the fsm constructor init function */
-	if (ret != STM_RET_TRAN) {          /* transition must happen here */
-		STM_ASSERT (0);
-	}
+	STM_ASSERT (ret == STM_RET_TRAN);	/* transition must happen here */
 
-	STM_TRIG (me->temp, STM_SIG_ENTRY); /* trig the STM_EVT_ENTRY to the new transitioned state */
-	me->state = me->temp;               /*change to new state*/
+	STM_TRIG (me->temp, STM_SIG_ENTRY); /* trig the STM_SIG_ENTRY to the new transitioned state */
+	me->state = me->temp;               /* change to new state */
 }
 
 /*
@@ -63,9 +60,7 @@ void fsm_dispatch(stm_t *me, evt_t *e)
 {
 	int ret;
 
-	if (me->state != me->temp) {        	/* State must be stable here */
-		STM_ASSERT (0);
-	}
+	STM_ASSERT (me->state == me->temp);	/* State must be stable here */
 
 	ret = (*me->state) (me, e);         	/* exceute the state function with new event */
 	if (ret == STM_RET_TRAN) {
@@ -103,20 +98,13 @@ void hsm_init (stm_t *me, evt_t *e)
 	stm_func_t path[STM_MAX_NEST_DEPTH]; /* Max nested state levels */
 	stm_func_t t = me->state;
 
-	if (me->temp == 0) {
-		STM_ASSERT (0);
-	}
-
-	if (t != hsm_top) { /* if state is not equal to the hsm top state, just assert */
-		STM_ASSERT (0);
-	}
+	STM_ASSERT (me->temp != 0);
+	STM_ASSERT (t == hsm_top);	/* if state is not equal to the hsm top state, just assert */
 
 	ret = (*me->temp) (me, e);          /* do the hsm constructor init function */
-	if (ret != STM_RET_TRAN) {          /* transition must happen here */
-		STM_ASSERT (0);
-	}
+	STM_ASSERT (ret == STM_RET_TRAN);	/* transition must happen here */
 
-	/*Becareful STM_EVT_INIT must trig state to the nested children state, otherwise hsm crash*/
+	/*Becareful STM_SIG_INIT must trig state to the nested children state, otherwise hsm crash*/
 	do {
 		ip = 0;
 		path[0] = me->temp;
@@ -131,11 +119,9 @@ void hsm_init (stm_t *me, evt_t *e)
 
 		me->temp = path[0];
 
-		if (ip >= STM_MAX_NEST_DEPTH) {
-			STM_ASSERT (0);
-		}
+		STM_ASSERT (ip < STM_MAX_NEST_DEPTH);
 
-		/* trig STM_EVT_ENTRY from father source state to nested children state */
+		/* trig STM_SIG_ENTRY from father source state to nested children state */
 		do {
 			STM_TRIG(path[ip], STM_SIG_ENTRY);
 			--ip;
@@ -143,8 +129,7 @@ void hsm_init (stm_t *me, evt_t *e)
 
 		t = path[0];
 
-		/* trig the STM_EVT_INIT to the new transitioned state, if new transion happened again, then we need do int init again */
-
+		/* trig the STM_SIG_INIT to the new transitioned state, if new transion happened again, then we need do int init again */
 	} while (STM_TRIG (t, STM_SIG_INIT) == STM_RET_TRAN);
 
 	me->state = t;                      /* change to new state */
@@ -166,9 +151,7 @@ void hsm_dispatch(stm_t *me, evt_t *e)
 	stm_func_t s;
 	stm_func_t t = me->state;
 
-	if (t != me->temp) {            /* state must be stable here */
-		STM_ASSERT (0);
-	}
+	STM_ASSERT (t == me->temp);		/* state must be stable here */
 
 	do {
 		s = me->temp;
@@ -179,7 +162,6 @@ void hsm_dispatch(stm_t *me, evt_t *e)
 		}
 
 		/* move up to the father state to find suitable state to handle the sig */
-
 	} while (r == STM_RET_FATHER);
 
 	/* if state transition happened then process it */
@@ -192,8 +174,8 @@ void hsm_dispatch(stm_t *me, evt_t *e)
 		/* t is the source state, and s is the state which cause new state change
 		   for example s is the father state of t */
 		while (t != s) {
-			/* if STM_EVT_EXIT is handled, trig STM_EVT_EMPTY to find the father state
-			   if STM_EVT_EXIT not handled , then me->temp hold the father state */
+			/* if STM_SIG_EXIT is handled, trig STM_SIG_EMPTY to find the father state
+			   if STM_SIG_EXIT not handled , then me->temp hold the father state */
 			if (STM_TRIG (t, STM_SIG_EXIT) == STM_RET_HANDLED) {
 				STM_TRIG (t, STM_SIG_EMPTY);
 			}
@@ -207,71 +189,63 @@ void hsm_dispatch(stm_t *me, evt_t *e)
 		   Be careful LCA state is either not entered not exited.
 		   all the father state of the target transition state is stored to path from hight to low etc,
 		   path[0] is the target transition state */
-		if (s == t) {
+		if (s == t) {								/* (a) check source==target (transition to self) */
 			STM_TRIG (s, STM_SIG_EXIT);
 			ip = 0;
 		} else {
-			STM_TRIG (t, STM_SIG_EMPTY);
+			STM_TRIG (t, STM_SIG_EMPTY);			/* superstate of target */
 			t = me->temp;
-
-			if (s == t) {
+			if (s == t) {							/* (b) check source==target->super */
 				ip = 0;
 			} else {
-				STM_TRIG (s, STM_SIG_EMPTY);
-
-				if (me->temp == t) {
+				STM_TRIG (s, STM_SIG_EMPTY);		/* superstate of src */
+				if (me->temp == t) {				/* (c) check source->super==target->super */
 					STM_TRIG (s, STM_SIG_EXIT);
 					ip = 0;
 				} else {
-					if (me->temp == path[0]) {
+					if (me->temp == path[0]) {		/* (d) check source->super==target */
 						STM_TRIG (s, STM_SIG_EXIT);
-					} else {
+					} else {						/* (e) check rest of source==target->super->super..
+                            						* and store the entry path along the way
+                            						*/
 						iq = 0;
 						ip = 1;
 						path[1] = t;
 						t = me->temp;
 
-						r = STM_TRIG (path[1], STM_SIG_EMPTY);
-
+						r = STM_TRIG (path[1], STM_SIG_EMPTY);	/* find target->super->super */
 						while (r == STM_RET_FATHER) {
 							++ip;
 							path[ip] = me->temp;
 							if (me->temp == s) {
 								iq = 1;
-
-								if (ip >= STM_MAX_NEST_DEPTH) {
-									STM_ASSERT (0);
-								}
-
+								STM_ASSERT (ip < STM_MAX_NEST_DEPTH);	/* entry path must not overflow */
 								--ip;
-								r = STM_RET_HANDLED;
-							} else {
+								r = STM_RET_HANDLED;			/* terminate the loop */
+							} else {			/* it is not the source, keep going up */
 								r = STM_TRIG (me->temp, STM_SIG_EMPTY);
 							}
 						}
 
 						if (iq == 0) {
-							if (ip >= STM_MAX_NEST_DEPTH) {
-								STM_ASSERT (0);
-							}
-
+							STM_ASSERT (ip < STM_MAX_NEST_DEPTH);
 							STM_TRIG (s, STM_SIG_EXIT);
-
+							/* (f) check the rest of source->super == target->super->super... */
 							iq = ip;
 							r = STM_RET_IGNORED;
 							do {
 								if (t == path[iq]) {
-									r = STM_RET_HANDLED;
-
-									ip = iq - 1;
-									iq = -1;
+									r = STM_RET_HANDLED;/* indicate LCA found */
+									ip = iq - 1;		/*do not enter LCA*/
+									iq = -1;			/* terminate the loop */
 								} else {
-									--iq;
+									--iq;				/* try lower superstate of target */
 								}
-
 							} while (iq >= 0);
 
-							if (r != STM_RET_HANDLED) {
+							if (r != STM_RET_HANDLED) {	/* LCA not found yet? */
+								/* (g) check each source->super->... 
+								   (h) for each target->super...*/
 								r = STM_RET_IGNORED;
 								do {
 									if (STM_TRIG (t, STM_SIG_EXIT) == STM_RET_HANDLED) {
@@ -283,12 +257,11 @@ void hsm_dispatch(stm_t *me, evt_t *e)
 									do {
 										if (t == path[iq]) {
 											ip = iq - 1;
-											iq = -1;
-											r = STM_RET_HANDLED;
+											iq = -1;			/* breaker inner */
+											r = STM_RET_HANDLED;/* breaker outer */
 										} else {
 											--iq;
 										}
-
 									} while (iq >= 0);
 								} while (r != STM_RET_HANDLED);
 							}
@@ -297,16 +270,17 @@ void hsm_dispatch(stm_t *me, evt_t *e)
 				}
 			}
 		}
-
-		for (; ip >= 0; --ip) {     /* trig STM_EVT_ENTRY from LCA to transioned state */
+									/* retrace the entry path in reverse (desired) order... */
+		for (; ip >= 0; --ip) {     /* trig STM_SIG_ENTRY from LCA to transioned state */
 			STM_TRIG(path[ip], STM_SIG_ENTRY);
 		}
 
 		t = path[0];
 		me->temp = t;
 
-		/* trig the STM_EVT_INIT to the new transitioned state, if new transion happened again, then we need do it again
-		   Becareful STM_EVT_INIT must trig t state to the nested children state, otherwise hsm crash */
+		/* drill into the target hierarchy... 
+		   trig the STM_SIG_INIT to the new transitioned state, if new transion happened again, then we need do it again
+		   Becareful STM_SIG_INIT must trig t state to the nested children state, otherwise hsm crash */
 		while (STM_TRIG (t, STM_SIG_INIT) == STM_RET_TRAN) {
 			ip = 0;
 			path[0] = me->temp;
@@ -321,11 +295,9 @@ void hsm_dispatch(stm_t *me, evt_t *e)
 
 			me->temp = path[0];
 
-			if (ip >= STM_MAX_NEST_DEPTH) {
-				STM_ASSERT (0);
-			}
+			STM_ASSERT (ip < STM_MAX_NEST_DEPTH);
 
-			/* trig STM_EVT_ENTRY from father source state to nested transition children state */
+			/* trig STM_SIG_ENTRY from father source state to nested transition children state */
 			do {
 				STM_TRIG (path[ip], STM_SIG_ENTRY);
 				--ip;
@@ -383,7 +355,7 @@ int hsm_top (stm_t *me, evt_t *e)
 void hsm_ctor(stm_t *me, stm_func_t init)
 {
 	static stm_vtbl_t vtbl = {hsm_init, hsm_dispatch};		/* set visual table */
-	
+
 	me->vptr = &vtbl;
 	me->state = hsm_top;
 	me->temp = init;

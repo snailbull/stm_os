@@ -35,9 +35,9 @@ enum {
 	TIMER_RET_DEL,
 };
 
-int evtimer_add(stm_t *me, int e, void *para, int ms, int flag);
-int evtimer_del(stm_t *me, int e);
-int evtimer_set(stm_t *me, int e, int flag);
+int evtimer_add(stm_t *me, int sig, void *para, int ms, int flag);
+int evtimer_del(stm_t *me, int sig);
+int evtimer_set(stm_t *me, int sig, int flag);
 void evtimer_update(int elapse_ms);
 int cbtimer_add(timer_func_t func, int ms, int flag);
 int cbtimer_del(timer_func_t func);
